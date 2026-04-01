@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { UserProfile, TDEEResult, MealEntry, FoodItem } from '../../types';
+import { UserProfile, TDEEResult, MealEntry, FoodItem } from '../../../types';
 import { searchFood, FOOD_CATEGORIES, VIETNAMESE_FOODS } from '../utils/foodDatabase';
+import { getTodaysMeals, getMealsGroupedByType, deleteMeal, getTotalCalories, getTotalMacros, saveMeal } from '../../../utils/mealStorage';
 
 interface CalorieHomePageProps {
   profile: UserProfile;
@@ -22,33 +23,59 @@ export default function CalorieHomePage({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
-  // Calculate totals for today
-  const todayTotals = meals.reduce((acc, meal) => ({
-    calories: acc.calories + meal.totalCalories,
-    protein: acc.protein + (meal.food.protein * meal.quantity),
-    carbs: acc.carbs + (meal.food.carbs * meal.quantity),
-    fat: acc.fat + (meal.food.fat * meal.quantity),
-  }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+  // Load today's meals from storage on mount
+  useEffect(() => {
+    const loadMeals = () => {
+      const todaysMeals = getTodaysMeals();
+      setMeals(todaysMeals);
+    };
+    
+    loadMeals();
+    
+    // Refresh meals when page becomes visible (in case user logged meal elsewhere)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadMeals();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  // Calculate totals for today using mealStorage utility
+  const today = new Date().toISOString().split('T')[0];
+  const todayTotals = {
+    calories: getTotalCalories(today),
+    ...getTotalMacros(today)
+  };
 
   const remainingCalories = tdee.targetCalories - todayTotals.calories;
   const progressPercent = Math.min(100, (todayTotals.calories / tdee.targetCalories) * 100);
 
   const addMeal = (food: FoodItem, mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack' = 'snack') => {
-    const entry: MealEntry = {
-      date: new Date().toISOString().split('T')[0],
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Save using mealStorage
+    const savedMeal = saveMeal({
+      date: today,
       mealType,
-      food,
-      quantity: 1,
-      totalCalories: food.calories,
-      createdAt: new Date().toISOString(),
-    };
-    setMeals(prev => [...prev, entry]);
+      foodName: food.nameVi || food.name,
+      estimatedKcal: food.calories,
+      protein: food.protein,
+      carbs: food.carbs,
+      fat: food.fat,
+    });
+    
+    // Refresh meals from storage
+    setMeals(getTodaysMeals());
     setShowAddFood(false);
     setSearchQuery('');
   };
 
-  const removeMeal = (index: number) => {
-    setMeals(prev => prev.filter((_, i) => i !== index));
+  const removeMeal = (mealId: string) => {
+    deleteMeal(mealId);
+    setMeals(getTodaysMeals()); // Refresh from storage
   };
 
   const filteredFoods = searchQuery 
@@ -169,30 +196,54 @@ export default function CalorieHomePage({
             <p className="text-gray-500 text-sm mt-1">Chụp ảnh hoặc thêm đồ ăn để bắt đầu</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {meals.map((meal, index) => (
-              <div key={index} className="bg-fitness-gray rounded-xl p-4 flex items-center gap-4">
-                <div className="text-2xl">🍽️</div>
-                <div className="flex-1">
-                  <div className="text-white font-medium">{meal.food.nameVi || meal.food.name}</div>
-                  <div className="text-gray-400 text-sm">
-                    {meal.food.protein}g P • {meal.food.carbs}g C • {meal.food.fat}g F
+          <div className="space-y-4">
+            {/* Group meals by meal type */}
+            {['breakfast', 'lunch', 'dinner', 'snack'].map(mealType => {
+              const mealsOfType = meals.filter(m => m.mealType === mealType);
+              if (mealsOfType.length === 0) return null;
+              
+              const mealTypeLabels: Record<string, string> = {
+                breakfast: '🌅 Bữa sáng',
+                lunch: '☀️ Bữa trưa',
+                dinner: '🌙 Bữa tối',
+                snack: '🍎 Bữa phụ'
+              };
+              
+              return (
+                <div key={mealType}>
+                  <h3 className="text-sm font-bold text-gray-400 mb-2 px-2">
+                    {mealTypeLabels[mealType]}
+                  </h3>
+                  <div className="space-y-2">
+                    {mealsOfType.map((meal) => (
+                      <div key={meal.id} className="bg-fitness-gray rounded-xl p-4 flex items-center gap-4">
+                        <div className="text-2xl">🍽️</div>
+                        <div className="flex-1">
+                          <div className="text-white font-medium">{meal.foodName}</div>
+                          <div className="text-gray-400 text-sm">
+                            {meal.protein && `${Math.round(meal.protein)}g P`}
+                            {meal.carbs && ` • ${Math.round(meal.carbs)}g C`}
+                            {meal.fat && ` • ${Math.round(meal.fat)}g F`}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-neon-green font-bold">{meal.estimatedKcal}</div>
+                          <div className="text-gray-500 text-xs">kcal</div>
+                        </div>
+                        <button 
+                          onClick={() => removeMeal(meal.id)}
+                          className="p-2 hover:bg-fitness-border rounded-lg"
+                        >
+                          <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-neon-green font-bold">{meal.totalCalories}</div>
-                  <div className="text-gray-500 text-xs">kcal</div>
-                </div>
-                <button 
-                  onClick={() => removeMeal(index)}
-                  className="p-2 hover:bg-fitness-border rounded-lg"
-                >
-                  <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

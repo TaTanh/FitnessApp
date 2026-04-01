@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { WorkoutSession, ExerciseType } from '../types';
 import { getExerciseConfig } from '../utils/exercises';
+import { saveWorkoutSession } from '../utils/workoutStorage';
 
 interface SummaryPageProps {
   session: WorkoutSession;
@@ -11,6 +12,19 @@ interface SummaryPageProps {
 export default function SummaryPage({ session, onDone, onRepeat }: SummaryPageProps) {
   const config = getExerciseConfig(session.exercise);
   const duration = session.endTime ? Math.floor((session.endTime - session.startTime - session.pausedTime) / 1000) : 0;
+  
+  // Save workout session on mount
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    
+    saveWorkoutSession({
+      exercise: config.name,
+      date: today,
+      totalReps: session.repCount,
+      formScore: session.avgFormScore,
+      durationSecs: duration,
+    });
+  }, []); // Empty deps - only save once on mount
   
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

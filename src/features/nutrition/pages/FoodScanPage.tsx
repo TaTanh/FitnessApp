@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { FoodItem, MealEntry } from '../../../types';
 import { analyzeFoodImage, canvasToBase64, isClaudeConfigured, FoodAnalysisResult } from '../../../lib/claude';
 import { storage } from '../../../lib/supabase';
+import { saveMeal } from '../../../utils/mealStorage';
 
 interface FoodScanPageProps {
   onBack: () => void;
@@ -113,6 +114,20 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
   const addToLog = useCallback(async () => {
     if (!analysisResult) return;
 
+    const today = new Date().toISOString().split('T')[0];
+
+    // Save using mealStorage utility
+    const savedMeal = saveMeal({
+      date: today,
+      mealType: selectedMealType,
+      foodName: analysisResult.foodName,
+      estimatedKcal: analysisResult.estimatedKcal,
+      protein: analysisResult.protein,
+      carbs: analysisResult.carbs,
+      fat: analysisResult.fat,
+    });
+
+    // Also save to old storage for backward compatibility (optional)
     const food: FoodItem = {
       name: analysisResult.foodName.toLowerCase().replace(/\s+/g, '_'),
       nameVi: analysisResult.foodName,
@@ -126,17 +141,13 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
     };
 
     const entry: MealEntry = {
-      date: new Date().toISOString().split('T')[0],
+      date: today,
       mealType: selectedMealType,
       food,
       quantity: 1,
       totalCalories: analysisResult.estimatedKcal,
       createdAt: new Date().toISOString(),
     };
-
-    // Save to storage
-    const existingMeals = await storage.get<MealEntry[]>('todayMeals') || [];
-    await storage.set('todayMeals', [...existingMeals, entry]);
 
     if (onFoodLogged) {
       onFoodLogged(entry);
@@ -149,6 +160,20 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
   const addManualEntry = useCallback(async () => {
     if (!manualForm.name || manualForm.calories <= 0) return;
 
+    const today = new Date().toISOString().split('T')[0];
+
+    // Save using mealStorage utility
+    const savedMeal = saveMeal({
+      date: today,
+      mealType: selectedMealType,
+      foodName: manualForm.name,
+      estimatedKcal: manualForm.calories,
+      protein: manualForm.protein,
+      carbs: manualForm.carbs,
+      fat: manualForm.fat,
+    });
+
+    // Also save to old storage for backward compatibility
     const food: FoodItem = {
       name: manualForm.name.toLowerCase().replace(/\s+/g, '_'),
       nameVi: manualForm.name,
@@ -161,16 +186,13 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
     };
 
     const entry: MealEntry = {
-      date: new Date().toISOString().split('T')[0],
+      date: today,
       mealType: selectedMealType,
       food,
       quantity: 1,
       totalCalories: manualForm.calories,
       createdAt: new Date().toISOString(),
     };
-
-    const existingMeals = await storage.get<MealEntry[]>('todayMeals') || [];
-    await storage.set('todayMeals', [...existingMeals, entry]);
 
     if (onFoodLogged) {
       onFoodLogged(entry);

@@ -1,6 +1,11 @@
-// Google Gemini Vision API utilities for food analysis
+// Food Analysis API utilities
+// Supports both Python CV Server (MobileNetV2) and Google Gemini Vision API
 
 const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || '';
+const CV_SERVER_URL = import.meta.env.VITE_CV_SERVER_URL || 'http://localhost:5001';
+
+// Set to 'cv' to use Python MobileNetV2 server, 'gemini' for Google Gemini
+const ANALYSIS_MODE = import.meta.env.VITE_ANALYSIS_MODE || 'cv';
 
 export interface FoodAnalysisResult {
   foodName: string;
@@ -58,7 +63,7 @@ export function getMediaType(file: File): string {
 /**
  * Analyze food image using Google Gemini Vision API
  */
-export async function analyzeFoodImage(
+async function analyzeWithGemini(
   base64Image: string,
   mediaType: string = 'image/jpeg'
 ): Promise<ClaudeAnalysisResponse> {
@@ -162,8 +167,90 @@ export async function analyzeFoodImage(
 }
 
 /**
- * Check if Google API is configured
+ * Analyze food image using Python CV Server (MobileNetV2)
+ */
+async function analyzeWithCVServer(
+  base64Image: string
+): Promise<ClaudeAnalysisResponse> {
+  try {
+    const response = await fetch(`${CV_SERVER_URL}/predict-base64`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        image: base64Image,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('CV Server error:', errorText);
+      return {
+        success: false,
+        error: `CV Server error: ${response.status}. Make sure Python server is running.`,
+      };
+    }
+
+    const result = await response.json();
+    
+    // Map CV server response to our format
+    const foodData: FoodAnalysisResult = {
+      foodName: result.food_name || 'Unknown',
+      estimatedKcal: result.estimated_kcal || 0,
+      protein: Math.round(result.estimated_kcal * 0.15 / 4), // Estimate protein
+      carbs: Math.round(result.estimated_kcal * 0.5 / 4),    // Estimate carbs
+      fat: Math.round(result.estimated_kcal * 0.35 / 9),     // Estimate fat
+      portionDescription: result.portion_note || 'Uoc tinh ~150g',
+      confidence: result.confidence_label || 'medium',
+      notes: result.alternatives 
+        ? `Goi y khac: ${result.alternatives.map((a: any) => `${a.food} (${a.confidence}%)`).join(', ')}`
+        : '',
+      ingredients: [],
+    };
+    
+    return {
+      success: true,
+      data: foodData,
+    };
+  } catch (error) {
+    console.error('CV Server call failed:', error);
+    return {
+      success: false,
+      error: `CV Server error: ${error instanceof Error ? error.message : 'Network error'}. Make sure: cd food_cv && python server.py`,
+    };
+  }
+}
+
+/**
+ * Analyze food image - routes to appropriate backend
+ */
+export async function analyzeFoodImage(
+  base64Image: string,
+  mediaType: string = 'image/jpeg'
+): Promise<ClaudeAnalysisResponse> {
+  console.log(`[analyzeFoodImage] Using mode: ${ANALYSIS_MODE}`);
+  
+  if (ANALYSIS_MODE === 'cv') {
+    return analyzeWithCVServer(base64Image);
+  } else {
+    return analyzeWithGemini(base64Image, mediaType);
+  }
+}
+
+/**
+ * Check if API is configured
  */
 export function isClaudeConfigured(): boolean {
+  if (ANALYSIS_MODE === 'cv') {
+    return true; // CV server doesn't need API key
+  }
   return Boolean(GOOGLE_API_KEY);
+}
+
+/**
+ * Get current analysis mode
+ */
+export function getAnalysisMode(): string {
+  return ANALYSIS_MODE;
 }
