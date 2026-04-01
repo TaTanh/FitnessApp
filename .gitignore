@@ -1,0 +1,47 @@
+# dependencies
+node_modules/
+
+# environment variables
+.env
+.env.*
+!.env.example
+
+# build output
+dist/
+dist-ssr/
+build/
+*.local
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# testing / coverage
+coverage/
+
+# Vite cache
+.vite/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional: Documentation files created by AI
+HUONG_DAN_SUA_LOI.md
+UX_FIX_SUMMARY.md
+
+# Lock files (optional - uncomment if using different package manager)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
