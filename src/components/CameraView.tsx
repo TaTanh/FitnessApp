@@ -19,6 +19,7 @@ const CameraView = forwardRef<CameraViewRef, CameraViewProps>(({ onVideoReady, i
   
   const [status, setStatus] = useState<'idle' | 'requesting' | 'ready' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [errorType, setErrorType] = useState<'permission_denied' | 'no_camera' | 'unknown' | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
 
   // Keep callback ref updated
@@ -43,6 +44,7 @@ const CameraView = forwardRef<CameraViewRef, CameraViewProps>(({ onVideoReady, i
     console.log('[CameraView] Starting camera...');
     setStatus('requesting');
     setError(null);
+    setErrorType(null);
     stopCamera();
 
     const video = videoRef.current;
@@ -120,16 +122,21 @@ const CameraView = forwardRef<CameraViewRef, CameraViewProps>(({ onVideoReady, i
       setStatus('error');
       if (err instanceof Error) {
         if (err.name === 'NotAllowedError') {
-          setError('Camera access denied. Please allow camera in browser settings.');
+          setErrorType('permission_denied');
+          setError('📵 Bạn đã từ chối quyền camera. Vào Settings để cấp quyền.');
         } else if (err.name === 'NotFoundError') {
-          setError('No camera found.');
+          setErrorType('no_camera');
+          setError('📷 Không tìm thấy camera trên thiết bị này.');
         } else if (err.name === 'NotReadableError') {
-          setError('Camera is in use by another app.');
+          setErrorType('unknown');
+          setError('Camera đang được sử dụng bởi ứng dụng khác.');
         } else {
-          setError(err.message);
+          setErrorType('unknown');
+          setError('❌ Không thể khởi động camera. Thử tải lại trang.');
         }
       } else {
-        setError('Unknown camera error');
+        setErrorType('unknown');
+        setError('❌ Lỗi không xác định khi truy cập camera.');
       }
     }
   }, [facingMode, stopCamera]);
@@ -192,15 +199,30 @@ const CameraView = forwardRef<CameraViewRef, CameraViewProps>(({ onVideoReady, i
       {status === 'error' && (
         <div className="absolute inset-0 bg-fitness-dark flex items-center justify-center p-6 z-10">
           <div className="text-center animate-fade-in max-w-md">
-            <div className="text-6xl mb-4">📷</div>
-            <h2 className="text-xl font-bold text-white mb-2">Camera Access Required</h2>
-            <p className="text-gray-400 mb-6">{error}</p>
-            <button 
-              onClick={startCamera}
-              className="px-6 py-3 bg-neon-green text-black font-semibold rounded-lg hover:bg-neon-green-dark transition-colors"
-            >
-              Try Again
-            </button>
+            <div className="text-6xl mb-4">
+              {errorType === 'permission_denied' && '📵'}
+              {errorType === 'no_camera' && '📷'}
+              {errorType === 'unknown' && '❌'}
+            </div>
+            <h2 className="text-xl font-bold text-white mb-2">
+              {errorType === 'permission_denied' && 'Quyền Camera Bị Từ Chối'}
+              {errorType === 'no_camera' && 'Không Tìm Thấy Camera'}
+              {errorType === 'unknown' && 'Lỗi Camera'}
+            </h2>
+            <p className="text-gray-400 mb-6 text-sm">{error}</p>
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={startCamera}
+                className="px-6 py-3 bg-neon-green text-black font-semibold rounded-lg hover:bg-neon-green-dark transition-colors"
+              >
+                🔄 Thử lại
+              </button>
+              {errorType === 'permission_denied' && (
+                <p className="text-gray-500 text-xs mt-2">
+                  Mở Settings → Quyền riêng tư → Camera → Cho phép trình duyệt truy cập
+                </p>
+              )}
+            </div>
           </div>
         </div>
       )}

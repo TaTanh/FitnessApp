@@ -167,6 +167,26 @@ async function analyzeWithGemini(
 }
 
 /**
+ * Check CV Server health
+ */
+export async function checkCVServerHealth(): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    
+    const res = await fetch(`${CV_SERVER_URL}/health`, {
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeout);
+    return res.ok;
+  } catch (error) {
+    console.error('[checkCVServerHealth] Server offline:', error);
+    return false;
+  }
+}
+
+/**
  * Analyze food image using Python CV Server (MobileNetV2)
  */
 async function analyzeWithCVServer(

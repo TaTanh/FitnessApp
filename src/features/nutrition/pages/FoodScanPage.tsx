@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { FoodItem, MealEntry } from '../../../types';
-import { analyzeFoodImage, canvasToBase64, isClaudeConfigured, FoodAnalysisResult } from '../../../lib/claude';
+import { analyzeFoodImage, canvasToBase64, isClaudeConfigured, FoodAnalysisResult, checkCVServerHealth } from '../../../lib/claude';
 import { storage } from '../../../lib/supabase';
 import { saveMeal } from '../../../utils/mealStorage';
 
@@ -16,6 +16,9 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<FoodAnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [cameraError, setCameraError] = useState<'permission_denied' | 'no_camera' | 'unknown' | null>(null);
+  const [serverOffline, setServerOffline] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('lunch');
   
   // Manual entry form
@@ -34,6 +37,7 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
   // Start camera
   const startCamera = useCallback(async () => {
     try {
+      setCameraError(null);
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
       });
@@ -41,9 +45,18 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Camera error:', err);
-      setError('Không thể truy cập camera. Vui lòng cấp quyền camera.');
+      if (err.name === 'NotAllowedError') {
+        setCameraError('permission_denied');
+        setError('📵 Bạn đã từ chối quyền camera. Vào Settings để cấp quyền.');
+      } else if (err.name === 'NotFoundError') {
+        setCameraError('no_camera');
+        setError('📷 Không tìm thấy camera trên thiết bị này.');
+      } else {
+        setCameraError('unknown');
+        setError('❌ Không thể khởi động camera. Thử tải lại trang.');
+      }
     }
   }, []);
 
@@ -90,6 +103,18 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
     setState('analyzing');
     setError(null);
 
+    // Check if using CV mode and if server is healthy
+    const analysisMode = import.meta.env.VITE_ANALYSIS_MODE || 'cv';
+    if (analysisMode === 'cv') {
+      const isHealthy = await checkCVServerHealth();
+      if (!isHealthy) {
+        setServerOffline(true);
+        setError('⚠️ CV Server chưa chạy — đang chuyển sang chế độ nhập tay');
+        setState('manual');
+        return;
+      }
+    }
+
     const base64 = canvasToBase64(canvasRef.current);
     const result = await analyzeFoodImage(base64);
 
@@ -112,94 +137,104 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
 
   // Add to meal log
   const addToLog = useCallback(async () => {
-    if (!analysisResult) return;
+    if (!analysisResult || isSubmitting) return;
 
-    const today = new Date().toISOString().split('T')[0];
+    setIsSubmitting(true);
+    try {
+      const today = new Date().toISOString().split('T')[0];
 
-    // Save using mealStorage utility
-    const savedMeal = saveMeal({
-      date: today,
-      mealType: selectedMealType,
-      foodName: analysisResult.foodName,
-      estimatedKcal: analysisResult.estimatedKcal,
-      protein: analysisResult.protein,
-      carbs: analysisResult.carbs,
-      fat: analysisResult.fat,
-    });
+      // Save using mealStorage utility
+      const savedMeal = saveMeal({
+        date: today,
+        mealType: selectedMealType,
+        foodName: analysisResult.foodName,
+        estimatedKcal: analysisResult.estimatedKcal,
+        protein: analysisResult.protein,
+        carbs: analysisResult.carbs,
+        fat: analysisResult.fat,
+      });
 
-    // Also save to old storage for backward compatibility (optional)
-    const food: FoodItem = {
-      name: analysisResult.foodName.toLowerCase().replace(/\s+/g, '_'),
-      nameVi: analysisResult.foodName,
-      calories: analysisResult.estimatedKcal,
-      protein: analysisResult.protein,
-      carbs: analysisResult.carbs,
-      fat: analysisResult.fat,
-      servingSize: 100,
-      servingUnit: analysisResult.portionDescription,
-      confidence: getConfidenceValue(analysisResult.confidence),
-    };
+      // Also save to old storage for backward compatibility (optional)
+      const food: FoodItem = {
+        name: analysisResult.foodName.toLowerCase().replace(/\s+/g, '_'),
+        nameVi: analysisResult.foodName,
+        calories: analysisResult.estimatedKcal,
+        protein: analysisResult.protein,
+        carbs: analysisResult.carbs,
+        fat: analysisResult.fat,
+        servingSize: 100,
+        servingUnit: analysisResult.portionDescription,
+        confidence: getConfidenceValue(analysisResult.confidence),
+      };
 
-    const entry: MealEntry = {
-      date: today,
-      mealType: selectedMealType,
-      food,
-      quantity: 1,
-      totalCalories: analysisResult.estimatedKcal,
-      createdAt: new Date().toISOString(),
-    };
+      const entry: MealEntry = {
+        date: today,
+        mealType: selectedMealType,
+        food,
+        quantity: 1,
+        totalCalories: analysisResult.estimatedKcal,
+        createdAt: new Date().toISOString(),
+      };
 
-    if (onFoodLogged) {
-      onFoodLogged(entry);
+      if (onFoodLogged) {
+        onFoodLogged(entry);
+      }
+
+      onBack();
+    } finally {
+      setIsSubmitting(false);
     }
-
-    onBack();
-  }, [analysisResult, selectedMealType, onBack, onFoodLogged]);
+  }, [analysisResult, selectedMealType, isSubmitting, onBack, onFoodLogged]);
 
   // Add manual entry
   const addManualEntry = useCallback(async () => {
-    if (!manualForm.name || manualForm.calories <= 0) return;
+    if (!manualForm.name || manualForm.calories <= 0 || isSubmitting) return;
 
-    const today = new Date().toISOString().split('T')[0];
+    setIsSubmitting(true);
+    try {
+      const today = new Date().toISOString().split('T')[0];
 
-    // Save using mealStorage utility
-    const savedMeal = saveMeal({
-      date: today,
-      mealType: selectedMealType,
-      foodName: manualForm.name,
-      estimatedKcal: manualForm.calories,
-      protein: manualForm.protein,
-      carbs: manualForm.carbs,
-      fat: manualForm.fat,
-    });
+      // Save using mealStorage utility
+      const savedMeal = saveMeal({
+        date: today,
+        mealType: selectedMealType,
+        foodName: manualForm.name,
+        estimatedKcal: manualForm.calories,
+        protein: manualForm.protein,
+        carbs: manualForm.carbs,
+        fat: manualForm.fat,
+      });
 
-    // Also save to old storage for backward compatibility
-    const food: FoodItem = {
-      name: manualForm.name.toLowerCase().replace(/\s+/g, '_'),
-      nameVi: manualForm.name,
-      calories: manualForm.calories,
-      protein: manualForm.protein,
-      carbs: manualForm.carbs,
-      fat: manualForm.fat,
-      servingSize: 100,
-      servingUnit: 'phần',
-    };
+      // Also save to old storage for backward compatibility
+      const food: FoodItem = {
+        name: manualForm.name.toLowerCase().replace(/\s+/g, '_'),
+        nameVi: manualForm.name,
+        calories: manualForm.calories,
+        protein: manualForm.protein,
+        carbs: manualForm.carbs,
+        fat: manualForm.fat,
+        servingSize: 100,
+        servingUnit: 'phần',
+      };
 
-    const entry: MealEntry = {
-      date: today,
-      mealType: selectedMealType,
-      food,
-      quantity: 1,
-      totalCalories: manualForm.calories,
-      createdAt: new Date().toISOString(),
-    };
+      const entry: MealEntry = {
+        date: today,
+        mealType: selectedMealType,
+        food,
+        quantity: 1,
+        totalCalories: manualForm.calories,
+        createdAt: new Date().toISOString(),
+      };
 
-    if (onFoodLogged) {
-      onFoodLogged(entry);
+      if (onFoodLogged) {
+        onFoodLogged(entry);
+      }
+
+      onBack();
+    } finally {
+      setIsSubmitting(false);
     }
-
-    onBack();
-  }, [manualForm, selectedMealType, onBack, onFoodLogged]);
+  }, [manualForm, selectedMealType, isSubmitting, onBack, onFoodLogged]);
 
   const getConfidenceValue = (conf: 'high' | 'medium' | 'low'): number => {
     switch (conf) {
@@ -267,8 +302,41 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
             </div>
           </div>
 
-          {/* Error message */}
-          {error && (
+          {/* Error message with fallback to manual entry */}
+          {cameraError && (
+            <div className="absolute inset-0 bg-black/90 flex items-center justify-center p-6 pointer-events-auto">
+              <div className="text-center max-w-md">
+                <div className="text-6xl mb-4">
+                  {cameraError === 'permission_denied' && '📵'}
+                  {cameraError === 'no_camera' && '📷'}
+                  {cameraError === 'unknown' && '❌'}
+                </div>
+                <h2 className="text-xl font-bold text-white mb-2">
+                  {cameraError === 'permission_denied' && 'Quyền Camera Bị Từ Chối'}
+                  {cameraError === 'no_camera' && 'Không Tìm Thấy Camera'}
+                  {cameraError === 'unknown' && 'Lỗi Camera'}
+                </h2>
+                <p className="text-gray-400 mb-6 text-sm">{error}</p>
+                <div className="flex flex-col gap-3">
+                  <button 
+                    onClick={startCamera}
+                    className="px-6 py-3 bg-neon-green text-black font-semibold rounded-lg"
+                  >
+                    🔄 Thử lại
+                  </button>
+                  <button 
+                    onClick={() => { setCameraError(null); setError(null); setState('manual'); }}
+                    className="px-6 py-3 bg-fitness-gray text-white font-semibold rounded-lg"
+                  >
+                    ✏️ Nhập tay
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* General error banner (non-camera errors) */}
+          {error && !cameraError && (
             <div className="absolute top-4 inset-x-4 bg-red-500/90 text-white p-3 rounded-xl text-center">
               {error}
             </div>
@@ -330,10 +398,20 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
               </button>
               <button
                 onClick={analyzeImage}
-                disabled={!isClaudeConfigured()}
-                className="flex-1 py-4 bg-neon-green text-black font-bold rounded-xl disabled:opacity-50"
+                disabled={state === 'analyzing' || !isClaudeConfigured()}
+                className="flex-1 py-4 bg-neon-green text-black font-bold rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                🤖 Phân tích
+                {state === 'analyzing' ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                    </svg>
+                    Đang xử lý...
+                  </>
+                ) : (
+                  <>🤖 Phân tích</>
+                )}
               </button>
             </div>
             {!isClaudeConfigured() && (
@@ -463,9 +541,20 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
               </button>
               <button
                 onClick={addToLog}
-                className="flex-1 py-4 bg-neon-green text-black font-bold rounded-xl"
+                disabled={isSubmitting}
+                className="flex-1 py-4 bg-neon-green text-black font-bold rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                ✓ Thêm vào nhật ký
+                {isSubmitting ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                    </svg>
+                    Đang lưu...
+                  </>
+                ) : (
+                  <>✓ Thêm vào nhật ký</>
+                )}
               </button>
             </div>
           </div>
@@ -475,6 +564,19 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
       {/* Manual Entry State */}
       {state === 'manual' && (
         <div className="p-4 pb-32">
+          {/* Server Offline Banner */}
+          {serverOffline && (
+            <div className="mb-4 p-4 bg-orange-500/20 border border-orange-500/50 rounded-xl">
+              <div className="flex items-center gap-2 text-orange-400">
+                <span className="text-2xl">⚠️</span>
+                <div>
+                  <p className="font-semibold">CV Server chưa chạy</p>
+                  <p className="text-xs text-orange-300">Đang dùng chế độ nhập tay. Để dùng AI: cd food_cv && python server.py</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="text-center mb-6">
             <div className="text-5xl mb-3">✏️</div>
             <h2 className="text-xl font-bold text-white">Nhập thủ công</h2>
@@ -490,7 +592,7 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
                 value={manualForm.name}
                 onChange={(e) => setManualForm(f => ({ ...f, name: e.target.value }))}
                 placeholder="VD: Phở bò, Cơm tấm..."
-                className="w-full px-4 py-3 bg-fitness-gray border border-fitness-border rounded-xl text-white placeholder-gray-500 focus:border-neon-green focus:outline-none"
+                className="w-full px-4 py-3 min-h-[44px] bg-fitness-gray border border-fitness-border rounded-xl text-white text-base placeholder-gray-500 focus:border-neon-green focus:outline-none"
               />
             </div>
 
@@ -502,7 +604,7 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
                 value={manualForm.calories || ''}
                 onChange={(e) => setManualForm(f => ({ ...f, calories: parseInt(e.target.value) || 0 }))}
                 placeholder="VD: 450"
-                className="w-full px-4 py-3 bg-fitness-gray border border-fitness-border rounded-xl text-white placeholder-gray-500 focus:border-neon-green focus:outline-none"
+                className="w-full px-4 py-3 min-h-[44px] bg-fitness-gray border border-fitness-border rounded-xl text-white text-base placeholder-gray-500 focus:border-neon-green focus:outline-none"
               />
             </div>
 
@@ -515,7 +617,7 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
                   value={manualForm.protein || ''}
                   onChange={(e) => setManualForm(f => ({ ...f, protein: parseInt(e.target.value) || 0 }))}
                   placeholder="0"
-                  className="w-full px-3 py-2 bg-fitness-gray border border-fitness-border rounded-lg text-white text-center placeholder-gray-500 focus:border-blue-400 focus:outline-none"
+                  className="w-full px-3 py-2 min-h-[44px] bg-fitness-gray border border-fitness-border rounded-lg text-white text-base text-center placeholder-gray-500 focus:border-blue-400 focus:outline-none"
                 />
               </div>
               <div>
@@ -525,7 +627,7 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
                   value={manualForm.carbs || ''}
                   onChange={(e) => setManualForm(f => ({ ...f, carbs: parseInt(e.target.value) || 0 }))}
                   placeholder="0"
-                  className="w-full px-3 py-2 bg-fitness-gray border border-fitness-border rounded-lg text-white text-center placeholder-gray-500 focus:border-yellow-400 focus:outline-none"
+                  className="w-full px-3 py-2 min-h-[44px] bg-fitness-gray border border-fitness-border rounded-lg text-white text-base text-center placeholder-gray-500 focus:border-yellow-400 focus:outline-none"
                 />
               </div>
               <div>
@@ -535,7 +637,7 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
                   value={manualForm.fat || ''}
                   onChange={(e) => setManualForm(f => ({ ...f, fat: parseInt(e.target.value) || 0 }))}
                   placeholder="0"
-                  className="w-full px-3 py-2 bg-fitness-gray border border-fitness-border rounded-lg text-white text-center placeholder-gray-500 focus:border-red-400 focus:outline-none"
+                  className="w-full px-3 py-2 min-h-[44px] bg-fitness-gray border border-fitness-border rounded-lg text-white text-base text-center placeholder-gray-500 focus:border-red-400 focus:outline-none"
                 />
               </div>
             </div>
@@ -573,10 +675,20 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
               </button>
               <button
                 onClick={addManualEntry}
-                disabled={!manualForm.name || manualForm.calories <= 0}
-                className="flex-1 py-4 bg-neon-green text-black font-bold rounded-xl disabled:opacity-50"
+                disabled={!manualForm.name || manualForm.calories <= 0 || isSubmitting}
+                className="flex-1 py-4 bg-neon-green text-black font-bold rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                ✓ Lưu
+                {isSubmitting ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                    </svg>
+                    Đang lưu...
+                  </>
+                ) : (
+                  <>✓ Lưu</>
+                )}
               </button>
             </div>
           </div>

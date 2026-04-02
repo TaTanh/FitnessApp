@@ -206,6 +206,7 @@ def server_error(e):
 
 
 def print_banner():
+    port = int(os.environ.get('CV_PORT', 5001))
     print("=" * 55)
     print("   FOOD CALORIE ESTIMATOR - API SERVER")
     print("   Do an Nhap mon Thi Giac May Tinh")
@@ -216,10 +217,10 @@ def print_banner():
     print("  POST /predict           Predict from image file")
     print("  POST /predict-base64    Predict from base64")
     print()
-    print("Server: http://localhost:5001")
+    print(f"Server: http://localhost:{port}")
     print()
     print("Test with curl:")
-    print('  curl -X POST -F "image=@pizza.jpg" http://localhost:5001/predict')
+    print(f'  curl -X POST -F "image=@pizza.jpg" http://localhost:{port}/predict')
     print()
     print("=" * 55)
     print("Press Ctrl+C to stop server")
@@ -229,13 +230,16 @@ def print_banner():
 if __name__ == '__main__':
     print_banner()
     
+    # Get port from environment variable or use default
+    PORT = int(os.environ.get('CV_PORT', 5001))
+    
     # Run Flask server
     # host='0.0.0.0' allows connections from other devices on network
-    # port=5001 avoids conflict with common ports
+    # port from CV_PORT env var or 5001 default
     # debug=False for production-like behavior
     app.run(
         host='0.0.0.0',
-        port=5001,
+        port=PORT,
         debug=False,
         threaded=True
     )
