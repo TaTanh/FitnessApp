@@ -1,47 +1,168 @@
-# dependencies
+# ============================================
+# DEPENDENCIES
+# ============================================
 node_modules/
+.pnp
+.pnp.js
 
-# environment variables
+# ============================================
+# ENVIRONMENT VARIABLES (API KEYS)
+# ============================================
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 .env.*
 !.env.example
 
-# build output
+# ============================================
+# BUILD OUTPUT
+# ============================================
 dist/
 dist-ssr/
 build/
 *.local
 
-# logs
+# ============================================
+# LOGS
+# ============================================
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# OS / editor
+# ============================================
+# PYTHON
+# ============================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+*.egg-info/
+.pytest_cache/
+
+# Python virtual environments
+food_cv/venv/
+food_cv/env/
+food_cv/.venv/
+
+# ============================================
+# MACHINE LEARNING / AI
+# ============================================
+# Large model files (comment out if you want to commit models)
+*.h5
+*.pb
+*.ckpt
+*.pth
+*.pt
+*.onnx
+*.tflite
+*.bin
+
+# Training outputs
+food_cv/model/checkpoints/
+food_cv/model/logs/
+food_cv/model/saved_models/
+
+# Datasets (too large for git)
+food_cv/dataset/
+food_cv/data/raw/
+food_cv/data/processed/
+*.tfrecord
+
+# ============================================
+# UPLOADS & TEMPORARY FILES
+# ============================================
+food_cv/uploads/*.jpg
+food_cv/uploads/*.jpeg
+food_cv/uploads/*.png
+!food_cv/uploads/.gitkeep
+
+# Temporary cleanup scripts
+cleanup_*.py
+cleanup_*.js
+diagnostic.js
+
+# ============================================
+# OS / EDITOR
+# ============================================
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+Desktop.ini
+
+# VSCode
 .vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# JetBrains IDEs
 .idea/
+*.iml
+
+# Vim
 *.swp
 *.swo
 *~
+.netrwhist
 
-# testing / coverage
+# Sublime
+*.sublime-project
+*.sublime-workspace
+
+# ============================================
+# TESTING / COVERAGE
+# ============================================
 coverage/
+.nyc_output/
+*.lcov
 
-# Vite cache
+# ============================================
+# VITE / TYPESCRIPT
+# ============================================
 .vite/
-
-# TypeScript cache
 *.tsbuildinfo
+.cache/
 
-# Optional: Documentation files created by AI
-HUONG_DAN_SUA_LOI.md
-UX_FIX_SUMMARY.md
+# ============================================
+# TEMPORARY DOCUMENTATION (AI GENERATED)
+# ============================================
+*_FIX_*.md
+*_DEBUG_*.md
+CLEANUP_*.md
+DEBUG_*.md
+QUICKFIX.md
+FREE_SOLUTION.md
+MODEL_VS_AI.md
+USE_LOCAL_MODEL.md
+TEST_*.md
+CANVAS_FIX.md
+SECURITY_WARNING.md
+tempcmd.md
 
-# Lock files (optional - uncomment if using different package manager)
+# Keep important docs
+!README.md
+!QUICKSTART.md
+
+# ============================================
+# SESSION STATE
+# ============================================
+.copilot/
+
+# ============================================
+# OPTIONAL: Lock files
+# ============================================
+# Uncomment if team uses different package managers
 # package-lock.json
 # yarn.lock
 # pnpm-lock.yaml

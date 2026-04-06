@@ -8,6 +8,8 @@ const CV_SERVER_URL = import.meta.env.VITE_CV_SERVER_URL || 'http://localhost:50
 const ANALYSIS_MODE = import.meta.env.VITE_ANALYSIS_MODE || 'cv';
 
 export interface FoodAnalysisResult {
+  isFood?: boolean;
+  reason?: string;
   foodName: string;
   estimatedKcal: number;
   protein: number;
@@ -87,8 +89,14 @@ async function analyzeWithGemini(
             {
               parts: [
                 {
-                  text: `Bạn là chuyên gia dinh dưỡng. Phân tích món ăn trong ảnh và trả về JSON với cấu trúc sau (chỉ trả JSON, không markdown, không backtick):
+                  text: `Bạn là chuyên gia dinh dưỡng. Phân tích món ăn trong ảnh.
+
+QUAN TRỌNG: Nếu ảnh KHÔNG có đồ ăn (ví dụ: chỉ có người, phong cảnh, vật thể khác), trả về:
+{"isFood": false, "reason": "Ảnh không chứa đồ ăn. Hãy chụp lại món ăn của bạn."}
+
+Nếu có đồ ăn, trả về JSON với cấu trúc sau (chỉ trả JSON, không markdown, không backtick):
 {
+  "isFood": true,
   "foodName": "tên món ăn (tiếng Việt)",
   "estimatedKcal": number,
   "protein": number (grams),
@@ -144,11 +152,19 @@ async function analyzeWithGemini(
         .replace(/```\n?/g, '')
         .trim();
       
-      const foodData: FoodAnalysisResult = JSON.parse(cleanJson);
+      const foodData = JSON.parse(cleanJson);
+      
+      // Check if image contains food
+      if (foodData.isFood === false) {
+        return {
+          success: false,
+          error: foodData.reason || '❌ Ảnh không chứa đồ ăn. Hãy chụp lại món ăn của bạn.',
+        };
+      }
       
       return {
         success: true,
-        data: foodData,
+        data: foodData as FoodAnalysisResult,
       };
     } catch (parseError) {
       console.error('Failed to parse Gemini response:', textContent);
@@ -214,10 +230,23 @@ async function analyzeWithCVServer(
 
     const result = await response.json();
     
+    // Check if CV server detected food with reasonable confidence
+    const confidence = result.confidence || 0;
+    const foodName = result.food_name || 'Unknown';
+    
+    // If confidence too low or food name suspicious, reject
+    if (confidence < 30 || foodName === 'Unknown' || !result.estimated_kcal) {
+      return {
+        success: false,
+        error: '❌ Không nhận diện được đồ ăn trong ảnh. Hãy chụp rõ món ăn hơn.',
+      };
+    }
+    
     // Map CV server response to our format
     const foodData: FoodAnalysisResult = {
-      foodName: result.food_name || 'Unknown',
-      estimatedKcal: result.estimated_kcal || 0,
+      isFood: true,
+      foodName: result.food_name,
+      estimatedKcal: result.estimated_kcal,
       protein: Math.round(result.estimated_kcal * 0.15 / 4), // Estimate protein
       carbs: Math.round(result.estimated_kcal * 0.5 / 4),    // Estimate carbs
       fat: Math.round(result.estimated_kcal * 0.35 / 9),     // Estimate fat
@@ -262,10 +291,9 @@ export async function analyzeFoodImage(
  * Check if API is configured
  */
 export function isClaudeConfigured(): boolean {
-  if (ANALYSIS_MODE === 'cv') {
-    return true; // CV server doesn't need API key
-  }
-  return Boolean(GOOGLE_API_KEY);
+  const result = ANALYSIS_MODE === 'cv' ? true : Boolean(GOOGLE_API_KEY);
+  console.log('[isClaudeConfigured] Mode:', ANALYSIS_MODE, '| API Key:', GOOGLE_API_KEY ? 'SET' : 'NOT SET', '| Result:', result);
+  return result;
 }
 
 /**

@@ -169,11 +169,23 @@ def predict_food(image_path: str, top_k: int = 3) -> dict:
     # Model inference
     predictions = model.predict(img, verbose=0)[0]
     
-    # Get top-k predictions
+    # Validation: Check predictions shape
+    if len(predictions) != len(class_names):
+        print(f"[WARNING] Predictions shape mismatch: {len(predictions)} vs {len(class_names)} classes")
+        if len(predictions) > len(class_names):
+            predictions = predictions[:len(class_names)]
+    
+    # Get top-k predictions (ensure within bounds)
+    top_k = min(top_k, len(predictions))
     top_indices = np.argsort(predictions)[::-1][:top_k]
     
     results = []
     for idx in top_indices:
+        # Safety check
+        if idx >= len(class_names):
+            print(f"[ERROR] Index {idx} out of range for {len(class_names)} classes")
+            continue
+            
         food_name = class_names[idx]
         conf = float(predictions[idx])
         kcal = calorie_db.get(food_name, 200)  # Default 200 if not found
@@ -185,6 +197,18 @@ def predict_food(image_path: str, top_k: int = 3) -> dict:
             "kcal_per_100g": kcal,
             "estimated_kcal": int(kcal * 1.5)  # Assume ~150g portion
         })
+    
+    # Safety: Ensure we have at least one result
+    if not results:
+        return {
+            "food_name": "Unknown",
+            "confidence": 0,
+            "confidence_label": "low",
+            "estimated_kcal": 200,
+            "kcal_per_100g": 200,
+            "alternatives": [],
+            "portion_note": "Cannot classify this image"
+        }
     
     # Top prediction
     top = results[0]
@@ -221,11 +245,24 @@ def predict_from_bytes(image_bytes: bytes, top_k: int = 3) -> dict:
     # Model inference
     predictions = model.predict(img, verbose=0)[0]
     
-    # Get top-k
+    # Validation: Check predictions shape
+    if len(predictions) != len(class_names):
+        print(f"[WARNING] Predictions shape mismatch: {len(predictions)} vs {len(class_names)} classes")
+        # Adjust if needed
+        if len(predictions) > len(class_names):
+            predictions = predictions[:len(class_names)]
+    
+    # Get top-k (ensure within bounds)
+    top_k = min(top_k, len(predictions))
     top_indices = np.argsort(predictions)[::-1][:top_k]
     
     results = []
     for idx in top_indices:
+        # Safety check
+        if idx >= len(class_names):
+            print(f"[ERROR] Index {idx} out of range for {len(class_names)} classes")
+            continue
+            
         food_name = class_names[idx]
         conf = float(predictions[idx])
         kcal = calorie_db.get(food_name, 200)
@@ -237,6 +274,18 @@ def predict_from_bytes(image_bytes: bytes, top_k: int = 3) -> dict:
             "kcal_per_100g": kcal,
             "estimated_kcal": int(kcal * 1.5)
         })
+    
+    # Safety: Ensure we have at least one result
+    if not results:
+        return {
+            "food_name": "Unknown",
+            "confidence": 0,
+            "confidence_label": "low",
+            "estimated_kcal": 200,
+            "kcal_per_100g": 200,
+            "alternatives": [],
+            "portion_note": "Cannot classify this image"
+        }
     
     top = results[0]
     

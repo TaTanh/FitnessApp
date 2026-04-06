@@ -14,6 +14,7 @@ type ScanState = 'camera' | 'preview' | 'analyzing' | 'result' | 'manual';
 export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps) {
   const [state, setState] = useState<ScanState>('camera');
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [capturedBase64, setCapturedBase64] = useState<string | null>(null); // Store base64 separately
   const [analysisResult, setAnalysisResult] = useState<FoodAnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<'permission_denied' | 'no_camera' | 'unknown' | null>(null);
@@ -90,7 +91,10 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
     if (ctx) {
       ctx.drawImage(video, 0, 0);
       const imageUrl = canvas.toDataURL('image/jpeg', 0.8);
+      const base64 = imageUrl.split(',')[1]; // Extract base64 without data URL prefix
+      
       setCapturedImage(imageUrl);
+      setCapturedBase64(base64); // Store base64 for later use
       setState('preview');
       stopCamera();
     }
@@ -98,38 +102,60 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
 
   // Analyze captured image
   const analyzeImage = useCallback(async () => {
-    if (!canvasRef.current) return;
-
-    setState('analyzing');
-    setError(null);
-
-    // Check if using CV mode and if server is healthy
-    const analysisMode = import.meta.env.VITE_ANALYSIS_MODE || 'cv';
-    if (analysisMode === 'cv') {
-      const isHealthy = await checkCVServerHealth();
-      if (!isHealthy) {
-        setServerOffline(true);
-        setError('⚠️ CV Server chưa chạy — đang chuyển sang chế độ nhập tay');
-        setState('manual');
-        return;
-      }
+    console.log('[FoodScanPage] analyzeImage called');
+    
+    if (!capturedBase64) {
+      console.error('[FoodScanPage] No captured base64 image');
+      setError('❌ Không có ảnh để phân tích. Hãy chụp lại.');
+      return;
     }
 
-    const base64 = canvasToBase64(canvasRef.current);
-    const result = await analyzeFoodImage(base64);
+    try {
+      console.log('[FoodScanPage] Setting state to analyzing');
+      setState('analyzing');
+      setError(null);
 
-    if (result.success && result.data) {
-      setAnalysisResult(result.data);
-      setState('result');
-    } else {
-      setError(result.error || 'Phân tích thất bại');
+      // Check if using CV mode and if server is healthy
+      const analysisMode = import.meta.env.VITE_ANALYSIS_MODE || 'cv';
+      console.log('[FoodScanPage] Analysis mode:', analysisMode);
+      
+      if (analysisMode === 'cv') {
+        console.log('[FoodScanPage] Checking CV server health...');
+        const isHealthy = await checkCVServerHealth();
+        console.log('[FoodScanPage] CV server healthy:', isHealthy);
+        
+        if (!isHealthy) {
+          setServerOffline(true);
+          setError('⚠️ CV Server chưa chạy — đang chuyển sang chế độ nhập tay');
+          setState('manual');
+          return;
+        }
+      }
+
+      console.log('[FoodScanPage] Base64 length:', capturedBase64.length);
+      
+      console.log('[FoodScanPage] Calling analyzeFoodImage...');
+      const result = await analyzeFoodImage(capturedBase64);
+      console.log('[FoodScanPage] Analysis result:', result);
+
+      if (result.success && result.data) {
+        setAnalysisResult(result.data);
+        setState('result');
+      } else {
+        setError(result.error || 'Phân tích thất bại');
+        setState('preview');
+      }
+    } catch (err) {
+      console.error('[FoodScanPage] Error analyzing image:', err);
+      setError('❌ Lỗi không xác định. Vui lòng thử lại.');
       setState('preview');
     }
-  }, []);
+  }, [capturedBase64]);
 
   // Retake photo
   const retakePhoto = useCallback(() => {
     setCapturedImage(null);
+    setCapturedBase64(null); // Clear base64 as well
     setAnalysisResult(null);
     setError(null);
     setState('camera');
@@ -376,14 +402,23 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
           
           {/* Error message */}
           {error && (
-            <div className="absolute top-4 inset-x-4 bg-red-500/90 text-white p-3 rounded-xl text-center">
-              {error}
-              <button 
-                onClick={() => setError(null)} 
-                className="ml-2 underline"
-              >
-                Đóng
-              </button>
+            <div className="absolute top-4 inset-x-4 bg-red-500/90 text-white p-4 rounded-xl shadow-lg">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1">
+                  <p className="font-semibold">{error}</p>
+                  {error.includes('không chứa đồ ăn') && (
+                    <p className="text-sm mt-1 opacity-90">
+                      💡 Mẹo: Đặt món ăn vào giữa khung hình với ánh sáng tốt
+                    </p>
+                  )}
+                </div>
+                <button 
+                  onClick={() => setError(null)} 
+                  className="text-white/80 hover:text-white font-bold text-lg"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
           )}
 
@@ -397,7 +432,12 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
                 🔄 Chụp lại
               </button>
               <button
-                onClick={analyzeImage}
+                onClick={() => {
+                  console.log('[FoodScanPage] Analyze button clicked');
+                  console.log('[FoodScanPage] State:', state);
+                  console.log('[FoodScanPage] isClaudeConfigured:', isClaudeConfigured());
+                  analyzeImage();
+                }}
                 disabled={state === 'analyzing' || !isClaudeConfigured()}
                 className="flex-1 py-4 bg-neon-green text-black font-bold rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
               >
@@ -416,9 +456,15 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
             </div>
             {!isClaudeConfigured() && (
               <p className="text-yellow-400 text-sm text-center mt-3">
-                ⚠️ Google API chưa được cấu hình
+                ⚠️ {ANALYSIS_MODE === 'gemini' ? 'Google API chưa được cấu hình' : 'Cấu hình không hợp lệ'}
               </p>
             )}
+            
+            {/* Debug info - remove after testing */}
+            <div className="text-white/50 text-xs text-center mt-2">
+              Mode: {import.meta.env.VITE_ANALYSIS_MODE || 'cv'} | 
+              Configured: {isClaudeConfigured() ? 'Yes' : 'No'}
+            </div>
           </div>
         </div>
       )}
