@@ -1,7 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { FoodItem, MealEntry } from '../../../types';
-import { analyzeFoodImage, canvasToBase64, isClaudeConfigured, FoodAnalysisResult, checkCVServerHealth } from '../../../lib/claude';
-import { storage } from '../../../lib/supabase';
+import { analyzeFoodImage, isClaudeConfigured, FoodAnalysisResult, checkCVServerHealth } from '../../../lib/claude';
 import { saveMeal } from '../../../utils/mealStorage';
 
 interface FoodScanPageProps {
@@ -170,7 +169,7 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
       const today = new Date().toISOString().split('T')[0];
 
       // Save using mealStorage utility
-      const savedMeal = saveMeal({
+      saveMeal({
         date: today,
         mealType: selectedMealType,
         foodName: analysisResult.foodName,
@@ -221,7 +220,7 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
       const today = new Date().toISOString().split('T')[0];
 
       // Save using mealStorage utility
-      const savedMeal = saveMeal({
+      saveMeal({
         date: today,
         mealType: selectedMealType,
         foodName: manualForm.name,
@@ -262,21 +261,21 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
     }
   }, [manualForm, selectedMealType, isSubmitting, onBack, onFoodLogged]);
 
-  const getConfidenceValue = (conf: 'high' | 'medium' | 'low'): number => {
+  function getConfidenceValue(conf: 'high' | 'medium' | 'low'): number {
     switch (conf) {
       case 'high': return 0.9;
       case 'medium': return 0.7;
       case 'low': return 0.5;
     }
-  };
+  }
 
-  const getConfidenceColor = (conf: 'high' | 'medium' | 'low'): string => {
+  function getConfidenceColor(conf: 'high' | 'medium' | 'low'): string {
     switch (conf) {
       case 'high': return 'bg-neon-green text-black';
       case 'medium': return 'bg-yellow-500 text-black';
       case 'low': return 'bg-orange-500 text-black';
     }
-  };
+  }
 
   const mealTypes = [
     { id: 'breakfast', label: '🌅 Sáng', name: 'breakfast' as const },
@@ -456,7 +455,7 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
             </div>
             {!isClaudeConfigured() && (
               <p className="text-yellow-400 text-sm text-center mt-3">
-                ⚠️ {ANALYSIS_MODE === 'gemini' ? 'Google API chưa được cấu hình' : 'Cấu hình không hợp lệ'}
+                ⚠️ {(import.meta.env.VITE_ANALYSIS_MODE || 'cv') === 'gemini' ? 'Google API chưa được cấu hình' : 'Cấu hình không hợp lệ'}
               </p>
             )}
             
