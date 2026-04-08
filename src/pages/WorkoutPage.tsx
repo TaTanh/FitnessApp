@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { ExerciseType, ExerciseAnalysis, RepState, WorkoutSession, Point, LANDMARKS } from '../types';
+import { ExerciseType, ExerciseAnalysis, RepState, WorkoutSession, Point } from '../types';
 import { getExerciseConfig, analyzeExercise } from '../utils/exercises';
 import { createInitialRepState } from '../utils/angles';
 import CameraView, { CameraViewRef } from '../components/CameraView';
@@ -55,7 +55,7 @@ export default function WorkoutPage({ exercise, onEndWorkout, onBack }: WorkoutP
   }, [modelStatus, sessionState]);
   
   // Handle camera ready
-  const handleVideoReady = useCallback((video: HTMLVideoElement, canvas: HTMLCanvasElement) => {
+  const handleVideoReady = useCallback((_video: HTMLVideoElement, _canvas: HTMLCanvasElement) => {
     console.log('[WorkoutPage] Camera ready');
     setIsCameraReady(true);
   }, []);

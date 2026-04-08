@@ -26,7 +26,7 @@ export type ExerciseType =
   | 'latPulldown';
 
 // FSM States for rep counting
-export type RepPhase = 'idle' | 'eccentric' | 'bottom' | 'concentric' | 'top';
+export type RepPhase = 'idle' | 'eccentric' | 'bottom' | 'concentric' | 'top' | 'hold';
 
 export interface RepState {
   phase: RepPhase;
