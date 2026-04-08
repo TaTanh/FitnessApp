@@ -220,7 +220,7 @@ def server_error(e):
 
 
 def print_banner():
-    port = int(os.environ.get('CV_PORT', 5001))
+    port = int(os.environ.get('PORT', 5001))
     print("=" * 55)
     print("   FOOD CALORIE ESTIMATOR - API SERVER")
     print("   Do an Nhap mon Thi Giac May Tinh")
@@ -244,12 +244,13 @@ def print_banner():
 if __name__ == '__main__':
     print_banner()
     
-    # Get port from environment variable or use default
-    PORT = int(os.environ.get('CV_PORT', 5001))
+    # Get port from environment variable (Render sets PORT automatically)
+    # Fallback to 5001 for local development
+    PORT = int(os.environ.get('PORT', 5001))
     
     # Run Flask server
     # host='0.0.0.0' allows connections from other devices on network
-    # port from CV_PORT env var or 5001 default
+    # port from PORT env var (production) or 5001 (local)
     # debug=False for production-like behavior
     app.run(
         host='0.0.0.0',
