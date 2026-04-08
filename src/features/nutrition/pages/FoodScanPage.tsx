@@ -382,14 +382,14 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
               
               <button
                 onClick={capturePhoto}
-                className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg"
+                className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-white rounded-full flex items-center justify-center shadow-lg transition-all"
               >
-                <div className="w-16 h-16 bg-neon-green rounded-full flex items-center justify-center">
-                  <span className="text-3xl">📸</span>
+                <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-neon-green rounded-full flex items-center justify-center">
+                  <span className="text-2xl sm:text-3xl md:text-4xl">📸</span>
                 </div>
               </button>
               
-              <div className="w-14" /> {/* Spacer for symmetry */}
+              <div className="w-10 sm:w-14" /> {/* Spacer for symmetry */}
             </div>
           </div>
         </div>

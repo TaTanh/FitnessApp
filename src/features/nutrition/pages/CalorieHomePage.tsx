@@ -106,21 +106,21 @@ export default function CalorieHomePage({
       <div className="px-4 pt-6">
         <div className="bg-gradient-to-br from-fitness-gray to-fitness-dark rounded-3xl p-6 border border-fitness-border">
           {/* Circular Progress */}
-          <div className="flex items-center gap-6">
-            <div className="relative w-28 h-28">
+          <div className="flex items-center gap-4 sm:gap-6">
+            <div className="relative w-20 h-20 sm:w-28 sm:h-28 flex-shrink-0">
               <svg className="w-full h-full transform -rotate-90">
                 <circle
-                  cx="56"
-                  cy="56"
-                  r="48"
+                  cx="50%"
+                  cy="50%"
+                  r="40%"
                   fill="none"
                   stroke="#2A2A2A"
                   strokeWidth="8"
                 />
                 <circle
-                  cx="56"
-                  cy="56"
-                  r="48"
+                  cx="50%"
+                  cy="50%"
+                  r="40%"
                   fill="none"
                   stroke={progressPercent > 100 ? '#FF4444' : '#39FF14'}
                   strokeWidth="8"
@@ -129,22 +129,22 @@ export default function CalorieHomePage({
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-2xl font-bold text-white">{todayTotals.calories}</span>
+                <span className="text-xl sm:text-2xl font-bold text-white">{todayTotals.calories}</span>
                 <span className="text-xs text-gray-400">kcal</span>
               </div>
             </div>
 
-            <div className="flex-1">
-              <div className="text-gray-400 text-sm">Còn lại hôm nay</div>
-              <div className={`text-3xl font-bold ${remainingCalories >= 0 ? 'text-neon-green' : 'text-red-400'}`}>
+            <div className="flex-1 min-w-0">
+              <div className="text-gray-400 text-xs sm:text-sm">Còn lại hôm nay</div>
+              <div className={`text-2xl sm:text-3xl font-bold ${remainingCalories >= 0 ? 'text-neon-green' : 'text-red-400'}`}>
                 {remainingCalories >= 0 ? remainingCalories : `+${Math.abs(remainingCalories)}`}
               </div>
-              <div className="text-gray-500 text-sm">/ {tdee.targetCalories} kcal mục tiêu</div>
+              <div className="text-gray-500 text-xs sm:text-sm truncate">/ {tdee.targetCalories} kcal mục tiêu</div>
             </div>
           </div>
 
           {/* Macros Progress */}
-          <div className="mt-6 grid grid-cols-3 gap-4">
+          <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
             <MacroBar 
               label="Protein" 
               current={todayTotals.protein} 

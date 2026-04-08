@@ -55,7 +55,21 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'model'))
 from predict import predict_food, predict_from_bytes
 
 app = Flask(__name__)
-CORS(app)  # Allow React frontend to call this API
+
+# CORS configuration for production deployment
+# Allow both localhost (dev) and Vercel (production)
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "http://localhost:5173",  # Local Vite dev server
+            "http://localhost:4173",  # Local Vite preview
+            "https://*.vercel.app",   # Vercel preview deployments
+            "https://*.vercel.app",   # Your production domain
+        ],
+        "methods": ["GET", "POST"],
+        "allow_headers": ["Content-Type"]
+    }
+})
 
 # Upload folder for temporary files
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')

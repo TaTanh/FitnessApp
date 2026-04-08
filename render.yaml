@@ -1,0 +1,44 @@
+# Render Blueprint for FitTrack Python Backend
+# Deploy: Connect GitHub repo → Render will auto-detect this file
+
+services:
+  # Python Flask API Server
+  - type: web
+    name: fittrack-api
+    runtime: python
+    env: python
+    region: singapore  # Closest to Vietnam
+    plan: free  # Free tier (512MB RAM, spins down after 15min inactive)
+    
+    # Build settings
+    buildCommand: "cd food_cv && pip install -r requirements.txt"
+    startCommand: "cd food_cv && python server.py"
+    
+    # Environment variables
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: PORT
+        value: 5001
+      - key: FLASK_ENV
+        value: production
+    
+    # Health check endpoint
+    healthCheckPath: /health
+    
+    # Auto-deploy settings
+    autoDeploy: true
+    branch: main  # Change to 'OpenCV' if deploying from that branch
+
+# Notes:
+# 1. Free tier limitations:
+#    - 512MB RAM (TensorFlow might be tight)
+#    - Spins down after 15min inactivity (first request slow)
+#    - 750 hours/month free
+#
+# 2. Model file MUST be in Git (25MB OK for Render)
+#
+# 3. After deploy, get the URL (e.g., https://fittrack-api.onrender.com)
+#    and use it in frontend VITE_CV_SERVER_URL
+#
+# 4. First deploy takes 5-10min (installing TensorFlow)

@@ -55,8 +55,8 @@ food_cv/.venv/
 # ============================================
 # MACHINE LEARNING / AI
 # ============================================
-# Large model files (comment out if you want to commit models)
-*.h5
+# Large model files (except our production model)
+# *.h5  <- Commented out to allow food101_model.h5 for deployment
 *.pb
 *.ckpt
 *.pth
@@ -64,6 +64,9 @@ food_cv/.venv/
 *.onnx
 *.tflite
 *.bin
+
+# Allow our production model to be committed
+!food_cv/model/food101_model.h5
 
 # Training outputs
 food_cv/model/checkpoints/
