@@ -10,16 +10,15 @@ services:
     region: singapore  # Closest to Vietnam
     plan: free  # Free tier (512MB RAM, spins down after 15min inactive)
     
+    # Python version - CRITICAL: TensorFlow 2.13 requires 3.11
+    pythonVersion: "3.11.9"
+    
     # Build settings
     buildCommand: "cd food_cv && pip install -r requirements.txt"
     startCommand: "cd food_cv && python server.py"
     
     # Environment variables
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.0
-      - key: PORT
-        value: 5001
       - key: FLASK_ENV
         value: production
     
@@ -28,7 +27,7 @@ services:
     
     # Auto-deploy settings
     autoDeploy: true
-    branch: main  # Change to 'OpenCV' if deploying from that branch
+    branch: OpenCV  # Deploy from OpenCV branch
 
 # Notes:
 # 1. Free tier limitations:
