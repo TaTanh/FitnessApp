@@ -587,6 +587,8 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
       {/* Manual Entry State */}
       {state === 'manual' && (
         <div className="p-4 pb-32">
+    <span className="text-xl font-bold text-neon-green">2025-12-17</span>
+  </div>
           {/* Server Offline Banner */}
           {serverOffline && (
             <div className="mb-4 p-4 bg-orange-500/20 border border-orange-500/50 rounded-xl">
