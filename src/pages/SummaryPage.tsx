@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { WorkoutSession, ExerciseType } from '../types';
+import { useEffect } from 'react';
+import { WorkoutSession } from '../types';
 import { getExerciseConfig } from '../utils/exercises';
 import { saveWorkoutSession } from '../utils/workoutStorage';
 
@@ -24,7 +24,7 @@ export default function SummaryPage({ session, onDone, onRepeat }: SummaryPagePr
       formScore: session.avgFormScore,
       durationSecs: duration,
     });
-  }, []); // Empty deps - only save once on mount
+  }, [config.name, duration, session.avgFormScore, session.repCount]);
   
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

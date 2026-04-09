@@ -17,27 +17,15 @@ export const isSupabaseConfigured = (): boolean => {
 // Fallback to localStorage if Supabase not configured
 export const storage = {
   async get<T>(key: string): Promise<T | null> {
-    if (supabase) {
-      // TODO: Implement Supabase fetch
-      return null;
-    }
     const data = localStorage.getItem(key);
     return data ? JSON.parse(data) : null;
   },
 
   async set<T>(key: string, value: T): Promise<void> {
-    if (supabase) {
-      // TODO: Implement Supabase save
-      return;
-    }
     localStorage.setItem(key, JSON.stringify(value));
   },
 
   async remove(key: string): Promise<void> {
-    if (supabase) {
-      // TODO: Implement Supabase delete
-      return;
-    }
     localStorage.removeItem(key);
   },
 };

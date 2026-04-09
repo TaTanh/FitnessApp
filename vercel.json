@@ -19,9 +19,5 @@
         }
       ]
     }
-  ],
-  "env": {
-    "VITE_ANALYSIS_MODE": "cv",
-    "VITE_CV_SERVER_URL": "https://your-render-app.onrender.com"
-  }
+  ]
 }

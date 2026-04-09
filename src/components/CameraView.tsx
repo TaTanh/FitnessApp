@@ -41,7 +41,6 @@ const CameraView = forwardRef<CameraViewRef, CameraViewProps>(({ onVideoReady, i
   }, []);
 
   const startCamera = useCallback(async () => {
-    console.log('[CameraView] Starting camera...');
     setStatus('requesting');
     setError(null);
     setErrorType(null);
@@ -58,7 +57,6 @@ const CameraView = forwardRef<CameraViewRef, CameraViewProps>(({ onVideoReady, i
     }
 
     try {
-      console.log('[CameraView] Requesting getUserMedia...');
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { 
           facingMode, 
@@ -68,7 +66,6 @@ const CameraView = forwardRef<CameraViewRef, CameraViewProps>(({ onVideoReady, i
         audio: false,
       });
 
-      console.log('[CameraView] Got stream, tracks:', stream.getVideoTracks().length);
       streamRef.current = stream;
       video.srcObject = stream;
 
@@ -85,7 +82,6 @@ const CameraView = forwardRef<CameraViewRef, CameraViewProps>(({ onVideoReady, i
         }
 
         video.onloadeddata = () => {
-          console.log('[CameraView] Video data loaded');
           clearTimeout(timeout);
           resolve();
         };
@@ -105,8 +101,6 @@ const CameraView = forwardRef<CameraViewRef, CameraViewProps>(({ onVideoReady, i
         await video.play();
       }
 
-      console.log('[CameraView] Video playing:', video.videoWidth, 'x', video.videoHeight);
-
       // Set canvas size
       canvas.width = video.videoWidth || 1280;
       canvas.height = video.videoHeight || 720;
@@ -115,7 +109,6 @@ const CameraView = forwardRef<CameraViewRef, CameraViewProps>(({ onVideoReady, i
       
       // Notify parent
       onVideoReadyRef.current(video, canvas);
-      console.log('[CameraView] Camera ready!');
 
     } catch (err) {
       console.error('[CameraView] Camera error:', err);
@@ -152,14 +145,14 @@ const CameraView = forwardRef<CameraViewRef, CameraViewProps>(({ onVideoReady, i
       clearTimeout(timer);
       stopCamera();
     };
-  }, []);
+  }, [startCamera, stopCamera]);
 
   // Restart when facingMode changes
   useEffect(() => {
     if (status === 'ready') {
       startCamera();
     }
-  }, [facingMode]);
+  }, [facingMode, startCamera, status]);
 
   const switchCamera = () => {
     setFacingMode(prev => prev === 'user' ? 'environment' : 'user');

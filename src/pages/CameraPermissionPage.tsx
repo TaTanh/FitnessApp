@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState } from 'react';
 
 interface CameraPermissionPageProps {
   onPermissionGranted: () => void;
@@ -7,8 +7,8 @@ interface CameraPermissionPageProps {
 }
 
 export default function CameraPermissionPage({ onPermissionGranted, onBack, error }: CameraPermissionPageProps) {
-  const [isRequesting, setIsRequesting] = React.useState(false);
-  const [permissionError, setPermissionError] = React.useState<string | null>(error || null);
+  const [isRequesting, setIsRequesting] = useState(false);
+  const [permissionError, setPermissionError] = useState<string | null>(error || null);
   
   const requestPermission = async () => {
     setIsRequesting(true);

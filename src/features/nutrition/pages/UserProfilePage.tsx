@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { UserProfile, Gender, ActivityLevel, FitnessGoal, ACTIVITY_LABELS, TDEEResult } from '../../types';
+import { useState } from 'react';
+import { UserProfile, Gender, ActivityLevel, FitnessGoal, ACTIVITY_LABELS, TDEEResult } from '../../../types';
 import { calculateFullTDEE, calculateBMI, getBMICategory } from '../utils/tdee';
 
 interface UserProfilePageProps {
@@ -21,7 +21,7 @@ export default function UserProfilePage({ existingProfile, onSave, onBack }: Use
   });
   const [tdeeResult, setTdeeResult] = useState<TDEEResult | null>(null);
 
-  const updateProfile = (field: keyof UserProfile, value: any) => {
+  const updateProfile = <K extends keyof UserProfile>(field: K, value: UserProfile[K]) => {
     setProfile(prev => ({ ...prev, [field]: value }));
   };
 

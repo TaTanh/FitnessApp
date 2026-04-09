@@ -1,4 +1,3 @@
-import React from 'react';
 import { ExerciseType, ExerciseConfig } from '../types';
 import { getAllExercises } from '../utils/exercises';
 

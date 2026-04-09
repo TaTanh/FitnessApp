@@ -12,7 +12,12 @@ export default function RepCounter({ count, isActive }: RepCounterProps) {
   useEffect(() => {
     const initAudio = () => {
       if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const webkitAudioContextCtor = (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        const AudioContextCtor = window.AudioContext ?? webkitAudioContextCtor;
+        if (!AudioContextCtor) {
+          return;
+        }
+        audioContextRef.current = new AudioContextCtor();
       }
       document.removeEventListener('click', initAudio);
     };

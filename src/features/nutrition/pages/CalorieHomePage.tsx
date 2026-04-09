@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { UserProfile, TDEEResult, MealEntry, FoodItem } from '../../../types';
 import { searchFood, FOOD_CATEGORIES, VIETNAMESE_FOODS } from '../utils/foodDatabase';
-import { getTodaysMeals, getMealsGroupedByType, deleteMeal, getTotalCalories, getTotalMacros, saveMeal } from '../../../utils/mealStorage';
+import { getTodaysMeals, deleteMeal, getTotalCalories, getTotalMacros, saveMeal } from '../../../utils/mealStorage';
 
 interface CalorieHomePageProps {
   profile: UserProfile;
@@ -12,7 +12,7 @@ interface CalorieHomePageProps {
 }
 
 export default function CalorieHomePage({ 
-  profile, 
+  profile,
   tdee, 
   onScanFood, 
   onEditProfile,
@@ -50,14 +50,15 @@ export default function CalorieHomePage({
     ...getTotalMacros(today)
   };
 
-  const remainingCalories = tdee.targetCalories - todayTotals.calories;
-  const progressPercent = Math.min(100, (todayTotals.calories / tdee.targetCalories) * 100);
+  const targetCalories = profile.targetCalories || tdee.targetCalories;
+  const remainingCalories = targetCalories - todayTotals.calories;
+  const progressPercent = Math.min(100, (todayTotals.calories / targetCalories) * 100);
 
   const addMeal = (food: FoodItem, mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack' = 'snack') => {
     const today = new Date().toISOString().split('T')[0];
     
     // Save using mealStorage
-    const savedMeal = saveMeal({
+    saveMeal({
       date: today,
       mealType,
       foodName: food.nameVi || food.name,
@@ -139,7 +140,7 @@ export default function CalorieHomePage({
               <div className={`text-2xl sm:text-3xl font-bold ${remainingCalories >= 0 ? 'text-neon-green' : 'text-red-400'}`}>
                 {remainingCalories >= 0 ? remainingCalories : `+${Math.abs(remainingCalories)}`}
               </div>
-              <div className="text-gray-500 text-xs sm:text-sm truncate">/ {tdee.targetCalories} kcal mục tiêu</div>
+              <div className="text-gray-500 text-xs sm:text-sm truncate">/ {targetCalories} kcal mục tiêu</div>
             </div>
           </div>
 

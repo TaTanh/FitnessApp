@@ -1,5 +1,4 @@
-import React from 'react';
-import { ExerciseType, ExerciseConfig } from '../types';
+import { ExerciseType } from '../types';
 import { getExerciseConfig } from '../utils/exercises';
 
 interface ExerciseDetailsPageProps {

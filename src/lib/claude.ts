@@ -6,6 +6,7 @@ const CV_SERVER_URL = import.meta.env.VITE_CV_SERVER_URL || 'http://localhost:50
 
 // Set to 'cv' to use Python MobileNetV2 server, 'gemini' for Google Gemini
 const ANALYSIS_MODE = import.meta.env.VITE_ANALYSIS_MODE || 'cv';
+const GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL || 'gemini-1.5-flash';
 
 export interface FoodAnalysisResult {
   isFood?: boolean;
@@ -21,7 +22,7 @@ export interface FoodAnalysisResult {
   ingredients: string[];
 }
 
-export interface ClaudeAnalysisResponse {
+export interface AnalysisResponse {
   success: boolean;
   data?: FoodAnalysisResult;
   error?: string;
@@ -68,7 +69,7 @@ export function getMediaType(file: File): string {
 async function analyzeWithGemini(
   base64Image: string,
   mediaType: string = 'image/jpeg'
-): Promise<ClaudeAnalysisResponse> {
+): Promise<AnalysisResponse> {
   if (!GOOGLE_API_KEY) {
     return {
       success: false,
@@ -78,7 +79,7 @@ async function analyzeWithGemini(
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GOOGLE_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GOOGLE_API_KEY}`,
       {
         method: 'POST',
         headers: {
@@ -166,7 +167,7 @@ Nếu có đồ ăn, trả về JSON với cấu trúc sau (chỉ trả JSON, kh
         success: true,
         data: foodData as FoodAnalysisResult,
       };
-    } catch (parseError) {
+    } catch {
       console.error('Failed to parse Gemini response:', textContent);
       return {
         success: false,
@@ -207,7 +208,7 @@ export async function checkCVServerHealth(): Promise<boolean> {
  */
 async function analyzeWithCVServer(
   base64Image: string
-): Promise<ClaudeAnalysisResponse> {
+): Promise<AnalysisResponse> {
   try {
     const response = await fetch(`${CV_SERVER_URL}/predict-base64`, {
       method: 'POST',
@@ -252,8 +253,10 @@ async function analyzeWithCVServer(
       fat: Math.round(result.estimated_kcal * 0.35 / 9),     // Estimate fat
       portionDescription: result.portion_note || 'Uoc tinh ~150g',
       confidence: result.confidence_label || 'medium',
-      notes: result.alternatives 
-        ? `Goi y khac: ${result.alternatives.map((a: any) => `${a.food} (${a.confidence}%)`).join(', ')}`
+      notes: Array.isArray(result.alternatives)
+        ? `Goi y khac: ${result.alternatives
+            .map((a: { food?: string; confidence?: number }) => `${a.food ?? 'Unknown'} (${a.confidence ?? 0}%)`)
+            .join(', ')}`
         : '',
       ingredients: [],
     };
@@ -277,9 +280,7 @@ async function analyzeWithCVServer(
 export async function analyzeFoodImage(
   base64Image: string,
   mediaType: string = 'image/jpeg'
-): Promise<ClaudeAnalysisResponse> {
-  console.log(`[analyzeFoodImage] Using mode: ${ANALYSIS_MODE}`);
-  
+): Promise<AnalysisResponse> {
   if (ANALYSIS_MODE === 'cv') {
     return analyzeWithCVServer(base64Image);
   } else {
@@ -290,9 +291,8 @@ export async function analyzeFoodImage(
 /**
  * Check if API is configured
  */
-export function isClaudeConfigured(): boolean {
+export function isAnalysisConfigured(): boolean {
   const result = ANALYSIS_MODE === 'cv' ? true : Boolean(GOOGLE_API_KEY);
-  console.log('[isClaudeConfigured] Mode:', ANALYSIS_MODE, '| API Key:', GOOGLE_API_KEY ? 'SET' : 'NOT SET', '| Result:', result);
   return result;
 }
 

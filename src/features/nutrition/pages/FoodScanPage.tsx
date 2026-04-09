@@ -1,6 +1,6 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { FoodItem, MealEntry } from '../../../types';
-import { analyzeFoodImage, isClaudeConfigured, FoodAnalysisResult, checkCVServerHealth } from '../../../lib/claude';
+import { analyzeFoodImage, isAnalysisConfigured, FoodAnalysisResult, checkCVServerHealth, getAnalysisMode } from '../../../lib/claude';
 import { saveMeal } from '../../../utils/mealStorage';
 
 interface FoodScanPageProps {
@@ -45,12 +45,12 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Camera error:', err);
-      if (err.name === 'NotAllowedError') {
+      if (err instanceof Error && err.name === 'NotAllowedError') {
         setCameraError('permission_denied');
         setError('📵 Bạn đã từ chối quyền camera. Vào Settings để cấp quyền.');
-      } else if (err.name === 'NotFoundError') {
+      } else if (err instanceof Error && err.name === 'NotFoundError') {
         setCameraError('no_camera');
         setError('📷 Không tìm thấy camera trên thiết bị này.');
       } else {
@@ -101,27 +101,20 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
 
   // Analyze captured image
   const analyzeImage = useCallback(async () => {
-    console.log('[FoodScanPage] analyzeImage called');
-    
     if (!capturedBase64) {
-      console.error('[FoodScanPage] No captured base64 image');
       setError('❌ Không có ảnh để phân tích. Hãy chụp lại.');
       return;
     }
 
     try {
-      console.log('[FoodScanPage] Setting state to analyzing');
       setState('analyzing');
       setError(null);
 
       // Check if using CV mode and if server is healthy
-      const analysisMode = import.meta.env.VITE_ANALYSIS_MODE || 'cv';
-      console.log('[FoodScanPage] Analysis mode:', analysisMode);
+      const analysisMode = getAnalysisMode();
       
       if (analysisMode === 'cv') {
-        console.log('[FoodScanPage] Checking CV server health...');
         const isHealthy = await checkCVServerHealth();
-        console.log('[FoodScanPage] CV server healthy:', isHealthy);
         
         if (!isHealthy) {
           setServerOffline(true);
@@ -131,11 +124,7 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
         }
       }
 
-      console.log('[FoodScanPage] Base64 length:', capturedBase64.length);
-      
-      console.log('[FoodScanPage] Calling analyzeFoodImage...');
       const result = await analyzeFoodImage(capturedBase64);
-      console.log('[FoodScanPage] Analysis result:', result);
 
       if (result.success && result.data) {
         setAnalysisResult(result.data);
@@ -431,13 +420,8 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
                 🔄 Chụp lại
               </button>
               <button
-                onClick={() => {
-                  console.log('[FoodScanPage] Analyze button clicked');
-                  console.log('[FoodScanPage] State:', state);
-                  console.log('[FoodScanPage] isClaudeConfigured:', isClaudeConfigured());
-                  analyzeImage();
-                }}
-                disabled={state === 'analyzing' || !isClaudeConfigured()}
+                onClick={analyzeImage}
+                disabled={state === 'analyzing' || !isAnalysisConfigured()}
                 className="flex-1 py-4 bg-neon-green text-black font-bold rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {state === 'analyzing' ? (
@@ -453,17 +437,11 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
                 )}
               </button>
             </div>
-            {!isClaudeConfigured() && (
+            {!isAnalysisConfigured() && (
               <p className="text-yellow-400 text-sm text-center mt-3">
-                ⚠️ {(import.meta.env.VITE_ANALYSIS_MODE || 'cv') === 'gemini' ? 'Google API chưa được cấu hình' : 'Cấu hình không hợp lệ'}
+                ⚠️ {getAnalysisMode() === 'gemini' ? 'Google API chưa được cấu hình' : 'Cấu hình không hợp lệ'}
               </p>
             )}
-            
-            {/* Debug info - remove after testing */}
-            <div className="text-white/50 text-xs text-center mt-2">
-              Mode: {import.meta.env.VITE_ANALYSIS_MODE || 'cv'} | 
-              Configured: {isClaudeConfigured() ? 'Yes' : 'No'}
-            </div>
           </div>
         </div>
       )}
