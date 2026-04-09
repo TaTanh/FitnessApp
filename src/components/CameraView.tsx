@@ -16,6 +16,7 @@ const CameraView = forwardRef<CameraViewRef, CameraViewProps>(({ onVideoReady, i
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const onVideoReadyRef = useRef(onVideoReady);
+  const startedRef = useRef(false);
   
   const [status, setStatus] = useState<'idle' | 'requesting' | 'ready' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -134,25 +135,35 @@ const CameraView = forwardRef<CameraViewRef, CameraViewProps>(({ onVideoReady, i
     }
   }, [facingMode, stopCamera]);
 
-  // Start camera on mount
+  // Keep startCamera ref updated to avoid stale closures
+  const startCameraRef = useRef(startCamera);
   useEffect(() => {
-    // Small delay to ensure refs are attached
+    startCameraRef.current = startCamera;
+  }, [startCamera]);
+
+  // Start camera on mount ONCE
+  useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+
     const timer = setTimeout(() => {
-      startCamera();
+      startCameraRef.current();
     }, 100);
-    
+
     return () => {
       clearTimeout(timer);
       stopCamera();
     };
-  }, [startCamera, stopCamera]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Restart when facingMode changes
+  // Restart ONLY when facingMode actually changes (not on every status change)
+  const prevFacingModeRef = useRef(facingMode);
   useEffect(() => {
-    if (status === 'ready') {
-      startCamera();
-    }
-  }, [facingMode, startCamera, status]);
+    if (prevFacingModeRef.current === facingMode) return;
+    prevFacingModeRef.current = facingMode;
+    startCameraRef.current();
+  }, [facingMode]);
 
   const switchCamera = () => {
     setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
