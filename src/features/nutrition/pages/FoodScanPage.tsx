@@ -20,7 +20,7 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
   const [serverOffline, setServerOffline] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('lunch');
-  
+
   // Manual entry form
   const [manualForm, setManualForm] = useState({
     name: '',
@@ -82,16 +82,16 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    
+
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    
+
     const ctx = canvas.getContext('2d');
     if (ctx) {
       ctx.drawImage(video, 0, 0);
       const imageUrl = canvas.toDataURL('image/jpeg', 0.8);
       const base64 = imageUrl.split(',')[1]; // Extract base64 without data URL prefix
-      
+
       setCapturedImage(imageUrl);
       setCapturedBase64(base64); // Store base64 for later use
       setState('preview');
@@ -112,10 +112,10 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
 
       // Check if using CV mode and if server is healthy
       const analysisMode = getAnalysisMode();
-      
+
       if (analysisMode === 'cv') {
         const isHealthy = await checkCVServerHealth();
-        
+
         if (!isHealthy) {
           setServerOffline(true);
           setError('⚠️ CV Server chưa chạy — đang chuyển sang chế độ nhập tay');
@@ -304,7 +304,7 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
             className="w-full h-full object-cover"
           />
           <canvas ref={canvasRef} className="hidden" />
-          
+
           {/* Camera overlay */}
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute inset-8 border-2 border-white/30 rounded-3xl" />
@@ -332,13 +332,13 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
                 </h2>
                 <p className="text-gray-400 mb-6 text-sm">{error}</p>
                 <div className="flex flex-col gap-3">
-                  <button 
+                  <button
                     onClick={startCamera}
                     className="px-6 py-3 bg-neon-green text-black font-semibold rounded-lg"
                   >
                     🔄 Thử lại
                   </button>
-                  <button 
+                  <button
                     onClick={() => { setCameraError(null); setError(null); setState('manual'); }}
                     className="px-6 py-3 bg-fitness-gray text-white font-semibold rounded-lg"
                   >
@@ -367,7 +367,7 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
               </button>
-              
+
               <button
                 onClick={capturePhoto}
                 className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-white rounded-full flex items-center justify-center shadow-lg transition-all"
@@ -376,7 +376,7 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
                   <span className="text-2xl sm:text-3xl md:text-4xl">📸</span>
                 </div>
               </button>
-              
+
               <div className="w-10 sm:w-14" /> {/* Spacer for symmetry */}
             </div>
           </div>
@@ -387,7 +387,7 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
       {state === 'preview' && capturedImage && (
         <div className="relative h-[calc(100vh-140px)]">
           <img src={capturedImage} alt="Captured food" className="w-full h-full object-cover" />
-          
+
           {/* Error message */}
           {error && (
             <div className="absolute top-4 inset-x-4 bg-red-500/90 text-white p-4 rounded-xl shadow-lg">
@@ -400,8 +400,8 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
                     </p>
                   )}
                 </div>
-                <button 
-                  onClick={() => setError(null)} 
+                <button
+                  onClick={() => setError(null)}
                   className="text-white/80 hover:text-white font-bold text-lg"
                 >
                   ✕
@@ -427,8 +427,8 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
                 {isSubmitting ? (
                   <>
                     <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
                     Đang xử lý...
                   </>
@@ -482,8 +482,8 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
                   <p className="text-gray-400 text-sm mt-1">{analysisResult.portionDescription}</p>
                 </div>
                 <span className={`px-3 py-1 rounded-full text-xs font-bold ${getConfidenceColor(analysisResult.confidence)}`}>
-                  {analysisResult.confidence === 'high' ? 'Chính xác cao' : 
-                   analysisResult.confidence === 'medium' ? 'Trung bình' : 'Ước tính'}
+                  {analysisResult.confidence === 'high' ? 'Chính xác cao' :
+                    analysisResult.confidence === 'medium' ? 'Trung bình' : 'Ước tính'}
                 </span>
               </div>
 
@@ -540,11 +540,10 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
                 <button
                   key={meal.id}
                   onClick={() => setSelectedMealType(meal.name)}
-                  className={`p-3 rounded-xl text-center transition-all ${
-                    selectedMealType === meal.name
+                  className={`p-3 rounded-xl text-center transition-all ${selectedMealType === meal.name
                       ? 'bg-neon-green text-black'
                       : 'bg-fitness-gray text-white'
-                  }`}
+                    }`}
                 >
                   <div className="text-lg">{meal.label.split(' ')[0]}</div>
                   <div className="text-xs">{meal.label.split(' ')[1]}</div>
@@ -570,8 +569,8 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
                 {isSubmitting ? (
                   <>
                     <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
                     Đang lưu...
                   </>
@@ -587,8 +586,6 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
       {/* Manual Entry State */}
       {state === 'manual' && (
         <div className="p-4 pb-32">
-    <span className="text-xl font-bold text-neon-green">2025-12-17</span>
-  </div>
           {/* Server Offline Banner */}
           {serverOffline && (
             <div className="mb-4 p-4 bg-orange-500/20 border border-orange-500/50 rounded-xl">
@@ -675,11 +672,10 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
                   <button
                     key={meal.id}
                     onClick={() => setSelectedMealType(meal.name)}
-                    className={`p-3 rounded-xl text-center transition-all ${
-                      selectedMealType === meal.name
+                    className={`p-3 rounded-xl text-center transition-all ${selectedMealType === meal.name
                         ? 'bg-neon-green text-black'
                         : 'bg-fitness-gray text-white border border-fitness-border'
-                    }`}
+                      }`}
                   >
                     <div className="text-lg">{meal.label.split(' ')[0]}</div>
                     <div className="text-xs">{meal.label.split(' ')[1]}</div>
@@ -706,8 +702,8 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
                 {isSubmitting ? (
                   <>
                     <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
                     Đang lưu...
                   </>
