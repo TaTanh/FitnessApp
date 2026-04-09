@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { UserProfile, TDEEResult, MealEntry, FoodItem } from '../../../types';
+import { UserProfile, TDEEResult, FoodItem } from '../../../types';
 import { searchFood, FOOD_CATEGORIES, VIETNAMESE_FOODS } from '../utils/foodDatabase';
-import { getTodaysMeals, deleteMeal, getTotalCalories, getTotalMacros, saveMeal } from '../../../utils/mealStorage';
+import { getTodaysMeals, deleteMeal, getTotalCalories, getTotalMacros, saveMeal, MealEntry } from '../../../utils/mealStorage';
 
 interface CalorieHomePageProps {
   profile: UserProfile;

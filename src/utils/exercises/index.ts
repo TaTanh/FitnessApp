@@ -13,7 +13,6 @@ export { EXERCISE_CONFIGS, getExerciseConfig, getAllExercises } from './config';
 
 // Main analyzer function
 import { Point, ExerciseAnalysis, ExerciseType, RepState } from '../../types';
-import { createInitialRepState } from '../angles';
 import { analyzeSquat } from './squat';
 import { analyzePushup } from './pushup';
 import { analyzePlank } from './plank';

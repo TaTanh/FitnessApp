@@ -1,4 +1,4 @@
-import { Point, RepState, RepPhase } from '../types';
+import { Point, RepState } from '../types';
 
 /**
  * Calculate angle between three points (vertex at point b)

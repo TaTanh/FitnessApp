@@ -421,10 +421,10 @@ export default function FoodScanPage({ onBack, onFoodLogged }: FoodScanPageProps
               </button>
               <button
                 onClick={analyzeImage}
-                disabled={state === 'analyzing' || !isAnalysisConfigured()}
+                disabled={isSubmitting || !isAnalysisConfigured()}
                 className="flex-1 py-4 bg-neon-green text-black font-bold rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {state === 'analyzing' ? (
+                {isSubmitting ? (
                   <>
                     <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>

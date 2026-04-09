@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
-import { Point } from '../utils/angles';
-import { ExerciseType, ExerciseAnalysis, analyzeExercise, ExerciseFeedback } from '../utils/exercises';
+import { Point, ExerciseType, ExerciseAnalysis, ExerciseFeedback, RepState } from '../types';
+import { analyzeExercise } from '../utils/exercises';
+import { createInitialRepState } from '../utils/angles';
 
 interface FormAnalyzerProps {
   landmarks: Point[];
@@ -13,7 +14,7 @@ interface FormAnalyzerProps {
 export default function FormAnalyzer({ landmarks, exercise, isActive, onRepComplete, onAnalysis }: FormAnalyzerProps) {
   const [currentFeedback, setCurrentFeedback] = useState<ExerciseFeedback[]>([]);
   const [confidence, setConfidence] = useState(0);
-  const phaseRef = useRef<'up' | 'down' | 'hold'>('up');
+  const repStateRef = useRef<RepState>(createInitialRepState());
   const lastRepTimeRef = useRef<number>(0);
 
   useEffect(() => {
@@ -23,8 +24,8 @@ export default function FormAnalyzer({ landmarks, exercise, isActive, onRepCompl
       return;
     }
 
-    const analysis = analyzeExercise(exercise, landmarks, phaseRef.current);
-    phaseRef.current = analysis.repPhase;
+    const analysis = analyzeExercise(exercise, landmarks, repStateRef.current);
+    repStateRef.current = analysis.repState;
     setConfidence(analysis.confidence);
     onAnalysis(analysis);
 

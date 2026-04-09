@@ -1,4 +1,5 @@
-import { ExerciseType, EXERCISE_INFO } from '../utils/exercises';
+import { ExerciseType } from '../types';
+import { EXERCISE_CONFIGS } from '../utils/exercises';
 
 interface ExerciseSelectorProps {
   selectedExercise: ExerciseType;
@@ -14,7 +15,7 @@ export default function ExerciseSelector({ selectedExercise, onSelectExercise, i
       <div className="bg-gradient-to-t from-black via-black/90 to-transparent pt-8 pb-4 px-4">
         <div className="flex justify-center gap-2 max-w-md mx-auto">
           {exercises.map((exercise) => {
-            const info = EXERCISE_INFO[exercise];
+            const info = EXERCISE_CONFIGS[exercise];
             const isSelected = selectedExercise === exercise;
             
             return (
