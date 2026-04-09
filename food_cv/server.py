@@ -60,14 +60,9 @@ app = Flask(__name__)
 # Allow both localhost (dev) and Vercel (production)
 CORS(app, resources={
     r"/*": {
-        "origins": [
-            "http://localhost:5173",  # Local Vite dev server
-            "http://localhost:4173",  # Local Vite preview
-            "https://*.vercel.app",   # Vercel preview deployments
-            "https://*.vercel.app",   # Your production domain
-        ],
-        "methods": ["GET", "POST"],
-        "allow_headers": ["Content-Type"]
+        "origins": "*",
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
     }
 })
 
