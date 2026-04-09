@@ -10,6 +10,7 @@ import {
 } from './pages';
 import { UserProfilePage, CalorieHomePage, FoodScanPage } from './features/nutrition';
 import { storage } from './lib/supabase';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 function App() {
   const [screen, setScreen] = useState<AppScreen>('landing');
@@ -157,11 +158,13 @@ function App() {
       
     case 'workout':
       return (
-        <WorkoutPage
-          exercise={selectedExercise}
-          onEndWorkout={handleEndWorkout}
-          onBack={handleBack}
-        />
+        <ErrorBoundary fallbackMessage="Không thể khởi động camera hoặc pose model">
+          <WorkoutPage
+            exercise={selectedExercise}
+            onEndWorkout={handleEndWorkout}
+            onBack={handleBack}
+          />
+        </ErrorBoundary>
       );
       
     case 'summary':
@@ -186,13 +189,15 @@ function App() {
     
     case 'calorieHome':
       return userProfile && tdeeResult ? (
-        <CalorieHomePage
-          profile={userProfile}
-          tdee={tdeeResult}
-          onScanFood={handleScanFood}
-          onEditProfile={handleEditProfile}
-          onBack={handleBack}
-        />
+        <ErrorBoundary fallbackMessage="Lỗi hiển thị trang Calorie Home">
+          <CalorieHomePage
+            profile={userProfile}
+            tdee={tdeeResult}
+            onScanFood={handleScanFood}
+            onEditProfile={handleEditProfile}
+            onBack={handleBack}
+          />
+        </ErrorBoundary>
       ) : (
         <UserProfilePage
           existingProfile={null}
@@ -203,9 +208,11 @@ function App() {
     
     case 'foodScan':
       return (
-        <FoodScanPage
-          onBack={handleBack}
-        />
+        <ErrorBoundary fallbackMessage="Lỗi kết nối tới CV server. Hãy chắc chắn Python server đang chạy">
+          <FoodScanPage
+            onBack={handleBack}
+          />
+        </ErrorBoundary>
       );
       
     default:

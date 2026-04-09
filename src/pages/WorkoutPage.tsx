@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { ExerciseType, ExerciseAnalysis, RepState, WorkoutSession, Point, LANDMARKS } from '../types';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { ExerciseType, ExerciseAnalysis, RepState, WorkoutSession, Point } from '../types';
 import { getExerciseConfig, analyzeExercise } from '../utils/exercises';
 import { createInitialRepState } from '../utils/angles';
 import CameraView, { CameraViewRef } from '../components/CameraView';
@@ -55,7 +55,7 @@ export default function WorkoutPage({ exercise, onEndWorkout, onBack }: WorkoutP
   }, [modelStatus, sessionState]);
   
   // Handle camera ready
-  const handleVideoReady = useCallback((video: HTMLVideoElement, canvas: HTMLCanvasElement) => {
+  const handleVideoReady = useCallback((_video: HTMLVideoElement, _canvas: HTMLCanvasElement) => {
     console.log('[WorkoutPage] Camera ready');
     setIsCameraReady(true);
   }, []);
@@ -178,7 +178,12 @@ export default function WorkoutPage({ exercise, onEndWorkout, onBack }: WorkoutP
   
   const playRepSound = () => {
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const webkitAudioContextCtor = (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      const AudioContextCtor = window.AudioContext ?? webkitAudioContextCtor;
+      if (!AudioContextCtor) {
+        return;
+      }
+      const audioContext = new AudioContextCtor();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
       
@@ -198,7 +203,7 @@ export default function WorkoutPage({ exercise, onEndWorkout, onBack }: WorkoutP
       if ('vibrate' in navigator) {
         navigator.vibrate(100);
       }
-    } catch (e) {
+    } catch {
       // Audio not available
     }
   };

@@ -16,6 +16,10 @@ export default {
       fontFamily: {
         'fitness': ['Inter', 'system-ui', 'sans-serif'],
       },
+      spacing: {
+        safe: 'env(safe-area-inset-bottom)',
+        'safe-top': 'env(safe-area-inset-top)',
+      },
       animation: {
         'pulse-neon': 'pulse-neon 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'fade-in': 'fade-in 0.3s ease-out',

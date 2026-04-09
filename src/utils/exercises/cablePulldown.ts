@@ -34,7 +34,7 @@ export function analyzeCablePulldown(landmarks: Point[], prevState: RepState): E
   const torsoLean = Math.abs(midShoulder.x - midHip.x);
   
   // Shoulder position relative to hip (should be slightly back)
-  const shoulderBehindHip = midShoulder.y < midHip.y;
+  // const shoulderBehindHip = midShoulder.y < midHip.y;
   
   // Update rep state
   const repState = updateRepState(prevState, avgElbowAngle, config.thresholds);

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { usePoseDetection, Keypoint } from '../hooks';
-import { Point } from '../utils/angles';
+import { Point } from '../types';
 
 interface PoseDetectorProps {
   videoElement: HTMLVideoElement | null;

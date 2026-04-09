@@ -1,5 +1,5 @@
 import { Point, ExerciseAnalysis, ExerciseFeedback, RepState, LANDMARKS } from '../../types';
-import { calculateAngle, averageVisibility, getMidpoint, updateRepState, calculateFormScore } from '../angles';
+import { calculateAngle, averageVisibility, updateRepState, calculateFormScore } from '../angles';
 import { EXERCISE_CONFIGS } from './config';
 
 const config = EXERCISE_CONFIGS.latPulldown;
@@ -17,8 +17,8 @@ export function analyzeLatPulldown(landmarks: Point[], prevState: RepState): Exe
   const rightElbow = landmarks[LANDMARKS.RIGHT_ELBOW];
   const leftWrist = landmarks[LANDMARKS.LEFT_WRIST];
   const rightWrist = landmarks[LANDMARKS.RIGHT_WRIST];
-  const leftHip = landmarks[LANDMARKS.LEFT_HIP];
-  const rightHip = landmarks[LANDMARKS.RIGHT_HIP];
+  // const leftHip = landmarks[LANDMARKS.LEFT_HIP];
+  // const rightHip = landmarks[LANDMARKS.RIGHT_HIP];
   
   const relevantPoints = [leftShoulder, rightShoulder, leftElbow, rightElbow, leftWrist, rightWrist];
   const confidence = averageVisibility(relevantPoints);

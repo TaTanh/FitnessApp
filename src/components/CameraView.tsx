@@ -16,9 +16,11 @@ const CameraView = forwardRef<CameraViewRef, CameraViewProps>(({ onVideoReady, i
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const onVideoReadyRef = useRef(onVideoReady);
+  const startedRef = useRef(false);
   
   const [status, setStatus] = useState<'idle' | 'requesting' | 'ready' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [errorType, setErrorType] = useState<'permission_denied' | 'no_camera' | 'unknown' | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
 
   // Keep callback ref updated
@@ -40,9 +42,9 @@ const CameraView = forwardRef<CameraViewRef, CameraViewProps>(({ onVideoReady, i
   }, []);
 
   const startCamera = useCallback(async () => {
-    console.log('[CameraView] Starting camera...');
     setStatus('requesting');
     setError(null);
+    setErrorType(null);
     stopCamera();
 
     const video = videoRef.current;
@@ -56,7 +58,6 @@ const CameraView = forwardRef<CameraViewRef, CameraViewProps>(({ onVideoReady, i
     }
 
     try {
-      console.log('[CameraView] Requesting getUserMedia...');
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { 
           facingMode, 
@@ -66,7 +67,6 @@ const CameraView = forwardRef<CameraViewRef, CameraViewProps>(({ onVideoReady, i
         audio: false,
       });
 
-      console.log('[CameraView] Got stream, tracks:', stream.getVideoTracks().length);
       streamRef.current = stream;
       video.srcObject = stream;
 
@@ -83,7 +83,6 @@ const CameraView = forwardRef<CameraViewRef, CameraViewProps>(({ onVideoReady, i
         }
 
         video.onloadeddata = () => {
-          console.log('[CameraView] Video data loaded');
           clearTimeout(timeout);
           resolve();
         };
@@ -103,8 +102,6 @@ const CameraView = forwardRef<CameraViewRef, CameraViewProps>(({ onVideoReady, i
         await video.play();
       }
 
-      console.log('[CameraView] Video playing:', video.videoWidth, 'x', video.videoHeight);
-
       // Set canvas size
       canvas.width = video.videoWidth || 1280;
       canvas.height = video.videoHeight || 720;
@@ -113,45 +110,59 @@ const CameraView = forwardRef<CameraViewRef, CameraViewProps>(({ onVideoReady, i
       
       // Notify parent
       onVideoReadyRef.current(video, canvas);
-      console.log('[CameraView] Camera ready!');
 
     } catch (err) {
       console.error('[CameraView] Camera error:', err);
       setStatus('error');
       if (err instanceof Error) {
         if (err.name === 'NotAllowedError') {
-          setError('Camera access denied. Please allow camera in browser settings.');
+          setErrorType('permission_denied');
+          setError('📵 Bạn đã từ chối quyền camera. Vào Settings để cấp quyền.');
         } else if (err.name === 'NotFoundError') {
-          setError('No camera found.');
+          setErrorType('no_camera');
+          setError('📷 Không tìm thấy camera trên thiết bị này.');
         } else if (err.name === 'NotReadableError') {
-          setError('Camera is in use by another app.');
+          setErrorType('unknown');
+          setError('Camera đang được sử dụng bởi ứng dụng khác.');
         } else {
-          setError(err.message);
+          setErrorType('unknown');
+          setError('❌ Không thể khởi động camera. Thử tải lại trang.');
         }
       } else {
-        setError('Unknown camera error');
+        setErrorType('unknown');
+        setError('❌ Lỗi không xác định khi truy cập camera.');
       }
     }
   }, [facingMode, stopCamera]);
 
-  // Start camera on mount
+  // Keep startCamera ref updated to avoid stale closures
+  const startCameraRef = useRef(startCamera);
   useEffect(() => {
-    // Small delay to ensure refs are attached
+    startCameraRef.current = startCamera;
+  }, [startCamera]);
+
+  // Start camera on mount ONCE
+  useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+
     const timer = setTimeout(() => {
-      startCamera();
+      startCameraRef.current();
     }, 100);
-    
+
     return () => {
       clearTimeout(timer);
       stopCamera();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Restart when facingMode changes
+  // Restart ONLY when facingMode actually changes (not on every status change)
+  const prevFacingModeRef = useRef(facingMode);
   useEffect(() => {
-    if (status === 'ready') {
-      startCamera();
-    }
+    if (prevFacingModeRef.current === facingMode) return;
+    prevFacingModeRef.current = facingMode;
+    startCameraRef.current();
   }, [facingMode]);
 
   const switchCamera = () => {
@@ -192,15 +203,30 @@ const CameraView = forwardRef<CameraViewRef, CameraViewProps>(({ onVideoReady, i
       {status === 'error' && (
         <div className="absolute inset-0 bg-fitness-dark flex items-center justify-center p-6 z-10">
           <div className="text-center animate-fade-in max-w-md">
-            <div className="text-6xl mb-4">📷</div>
-            <h2 className="text-xl font-bold text-white mb-2">Camera Access Required</h2>
-            <p className="text-gray-400 mb-6">{error}</p>
-            <button 
-              onClick={startCamera}
-              className="px-6 py-3 bg-neon-green text-black font-semibold rounded-lg hover:bg-neon-green-dark transition-colors"
-            >
-              Try Again
-            </button>
+            <div className="text-6xl mb-4">
+              {errorType === 'permission_denied' && '📵'}
+              {errorType === 'no_camera' && '📷'}
+              {errorType === 'unknown' && '❌'}
+            </div>
+            <h2 className="text-xl font-bold text-white mb-2">
+              {errorType === 'permission_denied' && 'Quyền Camera Bị Từ Chối'}
+              {errorType === 'no_camera' && 'Không Tìm Thấy Camera'}
+              {errorType === 'unknown' && 'Lỗi Camera'}
+            </h2>
+            <p className="text-gray-400 mb-6 text-sm">{error}</p>
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={startCamera}
+                className="px-6 py-3 bg-neon-green text-black font-semibold rounded-lg hover:bg-neon-green-dark transition-colors"
+              >
+                🔄 Thử lại
+              </button>
+              {errorType === 'permission_denied' && (
+                <p className="text-gray-500 text-xs mt-2">
+                  Mở Settings → Quyền riêng tư → Camera → Cho phép trình duyệt truy cập
+                </p>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -17,8 +17,8 @@ export function analyzeHammerCurl(landmarks: Point[], prevState: RepState): Exer
   const rightElbow = landmarks[LANDMARKS.RIGHT_ELBOW];
   const leftWrist = landmarks[LANDMARKS.LEFT_WRIST];
   const rightWrist = landmarks[LANDMARKS.RIGHT_WRIST];
-  const leftHip = landmarks[LANDMARKS.LEFT_HIP];
-  const rightHip = landmarks[LANDMARKS.RIGHT_HIP];
+  // const leftHip = landmarks[LANDMARKS.LEFT_HIP];
+  // const rightHip = landmarks[LANDMARKS.RIGHT_HIP];
   
   const relevantPoints = [leftShoulder, rightShoulder, leftElbow, rightElbow, leftWrist, rightWrist];
   const confidence = averageVisibility(relevantPoints);

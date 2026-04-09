@@ -1,5 +1,5 @@
 import { Point, ExerciseAnalysis, ExerciseFeedback, RepState, LANDMARKS } from '../../types';
-import { calculateAngle, averageVisibility, getMidpoint, updateRepState, calculateFormScore, createInitialRepState } from '../angles';
+import { calculateAngle, averageVisibility, getMidpoint, updateRepState, calculateFormScore } from '../angles';
 import { EXERCISE_CONFIGS } from './config';
 
 const config = EXERCISE_CONFIGS.squat;

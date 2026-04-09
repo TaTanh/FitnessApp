@@ -1,5 +1,5 @@
 import { Point, ExerciseAnalysis, ExerciseFeedback, RepState, LANDMARKS } from '../../types';
-import { calculateAngle, averageVisibility, getMidpoint, createInitialRepState, calculateFormScore } from '../angles';
+import { calculateAngle, averageVisibility, getMidpoint, calculateFormScore } from '../angles';
 
 export function analyzePlank(landmarks: Point[], prevState: RepState): ExerciseAnalysis {
   const feedback: ExerciseFeedback[] = [];
